@@ -8,3 +8,7 @@ tfplugingen-openapi generate \
   --config ./generator_config.yml \
   --output ./provider-code-spec.json \
   ./openapi.json
+
+tfplugingen-framework scaffold data-source \
+  --name admins \
+  --output-dir ./internal/provider
