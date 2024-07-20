@@ -1,0 +1,10 @@
+tfplugingen-framework scaffold provider \
+  --name azureipam \
+  --output-dir ./internal/provider
+
+curl https://ipam-xpmctiprtdfam.azurewebsites.net/api/openapi.json--output openapi.json
+
+tfplugingen-openapi generate \
+  --config ./generator_config.yml \
+  --output ./provider-code-spec.json \
+  ./openapi.json

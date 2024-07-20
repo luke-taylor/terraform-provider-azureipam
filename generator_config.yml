@@ -1,0 +1,7 @@
+provider:
+  name: azureipam
+data_sources:
+  admins:
+    read:
+      path: /api/admin/admins
+      method: GET

@@ -1,0 +1,49 @@
+{
+	"datasources": [
+		{
+			"name": "admins",
+			"schema": {
+				"attributes": [
+					{
+						"name": "admins",
+						"set_nested": {
+							"computed_optional_required": "computed",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "email",
+										"string": {
+											"computed_optional_required": "computed"
+										}
+									},
+									{
+										"name": "id",
+										"string": {
+											"computed_optional_required": "computed"
+										}
+									},
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed"
+										}
+									},
+									{
+										"name": "type",
+										"string": {
+											"computed_optional_required": "computed"
+										}
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		}
+	],
+	"provider": {
+		"name": "azureipam"
+	},
+	"version": "0.1"
+}
