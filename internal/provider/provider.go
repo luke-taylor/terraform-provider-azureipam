@@ -30,7 +30,7 @@ func (p *azureipamProvider) Metadata(ctx context.Context, req provider.MetadataR
 	resp.TypeName = "azureipam"
 }
 
-func (p *petstoreProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *azureipamProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 			NewAdminsDataSource,
 	}
