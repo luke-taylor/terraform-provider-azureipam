@@ -24,12 +24,6 @@ type adminsDataSource struct {
 	client *client.Client
 }
 
-type AdminsValueRaw struct {
-	Id    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Type  string `json:"type"`
-}
 
 
 func (d *adminsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -95,8 +89,8 @@ func callAdminsAPI(ctx context.Context, admins *datasource_admins.AdminsModel, c
 			return diags
 	}
 
-	// Unmarshal the JSON response into the adminsData slice using native Go types
-	var adminsDataRaw []AdminsValueRaw
+	// Unmarshal the JSON response into a slice of maps
+	var adminsDataRaw []map[string]interface{}
 	err = json.Unmarshal(adminsGet, &adminsDataRaw)
 	if err != nil {
 			diags.AddError("Response Unmarshal Error", fmt.Sprintf("Failed to unmarshal response: %s", err))
@@ -104,19 +98,9 @@ func callAdminsAPI(ctx context.Context, admins *datasource_admins.AdminsModel, c
 	}
 
 	// Convert the raw data to Terraform types
-	adminsData := make([]datasource_admins.AdminsValue, len(adminsDataRaw))
+	elements := make([]attr.Value, len(adminsDataRaw))
 	for i, adminRaw := range adminsDataRaw {
-			adminsData[i] = datasource_admins.AdminsValue{
-					Id:         types.StringValue(adminRaw.Id),
-					Name:       types.StringValue(adminRaw.Name),
-					Email:      types.StringValue(adminRaw.Email),
-					AdminsType: types.StringValue(adminRaw.Type),
-			}
-	}
-
-	// Prepare elements for the Set
-	elements := make([]attr.Value, len(adminsData))
-	for i, admin := range adminsData {
+			// Convert each map entry to Terraform types
 			objVal, objDiags := types.ObjectValue(
 					map[string]attr.Type{
 							"id":    types.StringType,
@@ -125,10 +109,10 @@ func callAdminsAPI(ctx context.Context, admins *datasource_admins.AdminsModel, c
 							"type":  types.StringType,
 					},
 					map[string]attr.Value{
-							"id":    admin.Id,
-							"name":  admin.Name,
-							"email": admin.Email,
-							"type":  admin.AdminsType,
+							"id":    types.StringValue(adminRaw["id"].(string)),
+							"name":  types.StringValue(adminRaw["name"].(string)),
+							"email": types.StringValue(adminRaw["email"].(string)),
+							"type":  types.StringValue(adminRaw["type"].(string)),
 					},
 			)
 			diags.Append(objDiags...)
