@@ -2,7 +2,7 @@ package client
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -17,14 +17,13 @@ type Client struct {
 	Token      string
 }
 
-
 // NewClient -
 func NewClient(host, token *string) (*Client, error) {
 	c := Client{
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 		// Default Hashicups URL
 		HostURL: HostURL,
-		Token: *token,
+		Token:   *token,
 	}
 
 	if host != nil {
@@ -34,7 +33,7 @@ func NewClient(host, token *string) (*Client, error) {
 	return &c, nil
 }
 
-func (c *Client) doRequest(req *http.Request, authToken *string) ([]byte, error) {
+func (c *Client) DoRequest(req *http.Request, authToken *string) ([]byte, error) {
 	token := c.Token
 
 	if authToken != nil {
@@ -49,7 +48,7 @@ func (c *Client) doRequest(req *http.Request, authToken *string) ([]byte, error)
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
