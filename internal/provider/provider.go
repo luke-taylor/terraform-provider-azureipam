@@ -29,8 +29,9 @@ type azureipamProvider struct {
 }
 
 type azureipamProviderModel struct {
-	Host  types.String `tfsdk:"host"`
-	Token types.String `tfsdk:"token"`
+	Host     types.String `tfsdk:"host"`
+	Token    types.String `tfsdk:"token"`
+	ClientID types.String `tfsdk:"client_id"`
 }
 
 func (p *azureipamProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
@@ -43,6 +44,10 @@ func (p *azureipamProvider) Schema(ctx context.Context, req provider.SchemaReque
 			},
 			"token": schema.StringAttribute{
 				Description: "bearer token for azure ipam.",
+				Optional:    true,
+			},
+			"client_id": schema.StringAttribute{
+				Description: "Client Id for the Azure IPAM Engine App.",
 				Optional:    true,
 			},
 		},
@@ -88,6 +93,7 @@ func (p *azureipamProvider) Configure(ctx context.Context, req provider.Configur
 
 	host := os.Getenv("HASHICUPS_HOST")
 	token := os.Getenv("HASHICUPS_TOKEN")
+	clientID := os.Getenv("HASHICUPS_CLIENT_ID")
 
 	if !config.Host.IsNull() {
 		host = config.Host.ValueString()
@@ -95,6 +101,10 @@ func (p *azureipamProvider) Configure(ctx context.Context, req provider.Configur
 
 	if !config.Token.IsNull() {
 		token = config.Token.ValueString()
+	}
+
+	if !config.ClientID.IsNull() {
+		clientID = config.ClientID.ValueString()
 	}
 
 	// If any of the expected configurations are missing, return
@@ -110,20 +120,14 @@ func (p *azureipamProvider) Configure(ctx context.Context, req provider.Configur
 		)
 	}
 
-	if token == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("token"),
-			"Missing HashiCups API token",
-			"The provider cannot create the HashiCups API client as there is a missing or empty value for the HashiCups API token. "+
-				"Set the token value in the configuration or use the HASHICUPS_USERNAME environment variable. "+
-				"If either is already set, ensure the value is not empty.",
-		)
-	}
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	azToken, _ := getAzureAccessToken(clientID)
+	if token == "" {
+		token = azToken
+	}
 	// Create a new HashiCups client using the configuration values
 	client, err := client.NewClient(&host, &token)
 	if err != nil {

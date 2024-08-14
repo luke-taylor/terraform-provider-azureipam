@@ -45,5 +45,122 @@
 	"provider": {
 		"name": "azureipam"
 	},
+	"resources": [
+		{
+			"name": "reservation",
+			"schema": {
+				"attributes": [
+					{
+						"name": "cidr",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "regexp"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"x.x.x.x/x\"), \"\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "desc",
+						"string": {
+							"computed_optional_required": "computed_optional"
+						}
+					},
+					{
+						"name": "reverse_search",
+						"bool": {
+							"computed_optional_required": "computed_optional"
+						}
+					},
+					{
+						"name": "size",
+						"int64": {
+							"computed_optional_required": "computed_optional"
+						}
+					},
+					{
+						"name": "smallest_cidr",
+						"bool": {
+							"computed_optional_required": "computed_optional"
+						}
+					},
+					{
+						"name": "block",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the target Block"
+						}
+					},
+					{
+						"name": "created_by",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "created_on",
+						"number": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "settled_by",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "settled_on",
+						"number": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "space",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the target Space"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "tag",
+						"single_nested": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "reservation",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "ID of the target Reservation"
+						}
+					}
+				]
+			}
+		}
+	],
 	"version": "0.1"
 }
