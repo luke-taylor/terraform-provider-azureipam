@@ -23,3 +23,8 @@ output "names" {
   value = data.azureipam_admins.example
 
 }
+
+output "reservation" {
+  value = azureipam_reservation.name
+
+}

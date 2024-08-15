@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -51,10 +50,6 @@ func (c *Client) DoRequest(req *http.Request, authToken *string) ([]byte, error)
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status: %d, body: %s", res.StatusCode, body)
 	}
 
 	return body, err
