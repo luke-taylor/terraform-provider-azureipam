@@ -14,7 +14,11 @@ provider "azureipam" {
 
 data "azureipam_admins" "example" {
 }
-
+resource "azureipam_reservation" "name" {
+  space         = "test"
+  block         = "test"
+  smallest_cidr = true
+}
 output "names" {
   value = data.azureipam_admins.example
 
