@@ -147,8 +147,11 @@
 					},
 					{
 						"name": "tag",
-						"single_nested": {
-							"computed_optional_required": "computed"
+						"map": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							}
 						}
 					},
 					{

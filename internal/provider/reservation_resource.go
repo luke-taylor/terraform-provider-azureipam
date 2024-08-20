@@ -11,10 +11,29 @@ import (
 	"terraform-provider-azureipam/internal/client"
 	"terraform-provider-azureipam/internal/resource_reservation"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+type ReservationAPIModel struct {
+	Id            string            `json:"id,omitempty"`
+	Space         string            `json:"space,omitempty"`
+	Block         string            `json:"block,omitempty"`
+	CIDR          string            `json:"cidr,omitempty"`
+	Desc          string            `json:"desc,omitempty"`
+	CreatedOn     float64           `json:"createdOn,omitempty"`
+	CreatedBy     string            `json:"createdBy,omitempty"`
+	SettledBy     string            `json:"settledBy,omitempty"`
+	SettledOn     float64           `json:"settledOn,omitempty"`
+	Status        string            `json:"status,omitempty"`
+	Tag           map[string]string `json:"tag,omitempty"`
+	ReverseSearch bool              `json:"reverse_search,omitempty"`
+	Size          int64             `json:"size,omitempty"`
+	Reservation   string            `json:"reservation,omitempty"`
+	SmallestCidr  bool              `json:"smallest_cidr,omitempty"`
+}
 
 var _ resource.Resource = (*reservationResource)(nil)
 
@@ -58,6 +77,11 @@ func (r *reservationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
+	resp.Diagnostics.Append(callReservationAPIGet(ctx, &data, r.client, "GET")...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -84,6 +108,11 @@ func (r *reservationResource) Delete(ctx context.Context, req resource.DeleteReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	resp.Diagnostics.Append(callReservationAPIGet(ctx, &data, r.client, "DELETE")...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 func (r *reservationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Add a nil check when handling ProviderData because Terraform
@@ -105,25 +134,92 @@ func (r *reservationResource) Configure(_ context.Context, req resource.Configur
 	r.client = client
 }
 
-// Typically this method would contain logic that makes an HTTP call to a remote API, and then stores
-// computed results back to the data model. For example purposes, this function just sets all unknown
-// Reservation values to null to avoid data consistency errors.
+func callReservationAPIGet(ctx context.Context, data *resource_reservation.ReservationModel, client *client.Client, method string) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	payload := ReservationAPIModel{
+		Space: data.Space.ValueString(),
+		Block: data.Block.ValueString(),
+		Id:    data.Id.ValueString(),
+	}
+
+	// Construct the API URL
+	space := strings.Trim(data.Space.ValueString(), "\"")
+	block := strings.Trim(data.Block.ValueString(), "\"")
+	id := strings.Trim(data.Id.ValueString(), "\"")
+	url := fmt.Sprintf("%s/api/spaces/%s/blocks/%s/reservations/%s", client.HostURL, space, block, id)
+
+	// Marshal the payload to JSON
+	reservationData, err := json.Marshal(payload)
+	if err != nil {
+		diags.AddError("Failed to marshal reservation data", err.Error())
+		return diags
+	}
+
+	// Create the HTTP request
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(reservationData))
+	if err != nil {
+		diags.AddError("Failed to create HTTP request", err.Error())
+		return diags
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	// Execute the request
+	respBody, err := client.DoRequest(req, &client.Token)
+	if err != nil {
+		diags.AddError("API request failed", err.Error())
+		return diags
+	}
+
+	// Assuming `DoRequest` returns raw JSON data and status code together
+	// Unmarshal the response into a temporary struct that matches the API response
+	if method != "DELETE" {
+		response := ReservationAPIModel{}
+		// Unmarshal the response body
+		if err := json.Unmarshal(respBody, &response); err != nil {
+			diags.AddError("Failed to unmarshal API response", err.Error())
+			return diags
+		}
+
+		// Map the API response to the Terraform model
+		data.Id = types.StringValue(response.Id)
+		data.Cidr = types.StringValue(response.CIDR)
+		data.CreatedBy = types.StringValue(response.CreatedBy)
+		data.ReverseSearch = types.BoolValue(response.ReverseSearch)
+		data.Size = types.Int64Value(response.Size)
+		data.Desc = types.StringValue(response.Desc)
+		settledOnBigFloat := big.NewFloat(response.SettledOn)
+		data.SettledOn = types.NumberValue(settledOnBigFloat)
+		data.SettledBy = types.StringValue(response.SettledBy)
+		createdOnBigFloat := big.NewFloat(response.CreatedOn)
+		data.CreatedOn = types.NumberValue(createdOnBigFloat)
+		data.Status = types.StringValue(response.Status)
+		data.Reservation = types.StringValue(response.Reservation)
+		if response.Tag != nil {
+			tagElements := make(map[string]attr.Value)
+			for k, v := range response.Tag {
+				tagElements[k] = types.StringValue(v)
+			}
+			data.Tag, _ = types.MapValue(types.StringType, tagElements)
+			if err != nil {
+				diags.AddError("Failed to create tag map", err.Error())
+			}
+		} else {
+			data.Tag = types.MapNull(types.StringType)
+		}
+	}
+	return diags
+}
+
 func callReservationAPI(ctx context.Context, data *resource_reservation.ReservationModel, client *client.Client, method string) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	// Define the payload based on the input data
-	type ReservationPayload struct {
-		Space        string `json:"space"`
-		Block        string `json:"block"`
-		SmallestCidr bool   `json:"smallest_cidr"`
-		Size         string `json:"size"`
-	}
-
-	payload := ReservationPayload{
-		Space:        data.Space.ValueString(),
-		Block:        data.Block.ValueString(),
-		SmallestCidr: data.SmallestCidr.ValueBool(),
-		Size:         "24",
+	payload := ReservationAPIModel{
+		Space:         data.Space.ValueString(),
+		Block:         data.Block.ValueString(),
+		SmallestCidr:  data.SmallestCidr.ValueBool(),
+		ReverseSearch: data.ReverseSearch.ValueBool(),
+		Size:          data.Size.ValueInt64(),
 	}
 
 	// Construct the API URL
@@ -155,24 +251,8 @@ func callReservationAPI(ctx context.Context, data *resource_reservation.Reservat
 
 	// Assuming `DoRequest` returns raw JSON data and status code together
 	// Unmarshal the response into a temporary struct that matches the API response
-	var response struct {
-		ID            string            `json:"id"`
-		Space         string            `json:"space"`
-		Block         string            `json:"block"`
-		CIDR          string            `json:"cidr"`
-		Desc          *string           `json:"desc"`
-		CreatedOn     float64           `json:"createdOn"`
-		CreatedBy     string            `json:"createdBy"`
-		SettledBy     *string           `json:"settledBy"`
-		SettledOn     *float64          `json:"settledOn"`
-		Status        string            `json:"status"`
-		Tag           map[string]string `json:"tag"`
-		XIPAMResID    string            `json:"x_ipam_res_id,omitempty"`
-		ReverseSearch bool              `json:"reverse_search"`
-		Size          int64             `json:"size"`
-		Reservation   string            `json:"reservation"`
-	}
 
+	response := ReservationAPIModel{}
 	// Unmarshal the response body
 	if err := json.Unmarshal(respBody, &response); err != nil {
 		diags.AddError("Failed to unmarshal API response", err.Error())
@@ -180,59 +260,28 @@ func callReservationAPI(ctx context.Context, data *resource_reservation.Reservat
 	}
 
 	// Map the API response to the Terraform model
-	data.Id = types.StringValue(response.ID)
-	data.Space = types.StringValue(response.Space)
-	data.Block = types.StringValue(response.Block)
+	data.Id = types.StringValue(response.Id)
 	data.Cidr = types.StringValue(response.CIDR)
 	data.CreatedBy = types.StringValue(response.CreatedBy)
-	data.ReverseSearch = types.BoolValue(response.ReverseSearch)
-	data.Size = types.Int64Value(response.Size)
-	data.Reservation = types.StringValue(response.Reservation)
-
-	// Convert float64 to *big.Float for CreatedOn
+	data.Desc = types.StringValue(response.Desc)
+	settledOnBigFloat := big.NewFloat(response.SettledOn)
+	data.SettledOn = types.NumberValue(settledOnBigFloat)
+	data.SettledBy = types.StringValue(response.SettledBy)
 	createdOnBigFloat := big.NewFloat(response.CreatedOn)
 	data.CreatedOn = types.NumberValue(createdOnBigFloat)
-
 	data.Status = types.StringValue(response.Status)
-
-	// Handle optional fields
-	if response.Desc != nil {
-		data.Desc = types.StringValue(*response.Desc)
-	} else {
-		data.Desc = types.StringNull()
-	}
-
-	if response.SettledBy != nil {
-		data.SettledBy = types.StringValue(*response.SettledBy)
-	} else {
-		data.SettledBy = types.StringNull()
-	}
-
-	if response.SettledOn != nil {
-		settledOnBigFloat := big.NewFloat(*response.SettledOn)
-		data.SettledOn = types.NumberValue(settledOnBigFloat)
-	} else {
-		data.SettledOn = types.NumberNull()
-	}
-
-	// Handling the Tag field
+	data.Reservation = types.StringValue(response.Reservation)
 	if response.Tag != nil {
-		// Prepare the elements slice
-		// elements := make(map[string]attr.Value, len(response.Tag))
-
-		// for k, v := range response.Tag {
-		// 	elements[k] = types.StringValue(v)
-		// 	// Check if the Tag key is "X-IPAM-RES-ID" and set the XIPAMResID in data
-		// 	if k == "X-IPAM-RES-ID" {
-
-		// 	}
-		// }
-
-		// // Convert the map to an ObjectValue and set it in the data model
-		data.Tag = resource_reservation.NewTagValueNull()
-
+		tagElements := make(map[string]attr.Value)
+		for k, v := range response.Tag {
+			tagElements[k] = types.StringValue(v)
+		}
+		data.Tag, _ = types.MapValue(types.StringType, tagElements)
+		if err != nil {
+			diags.AddError("Failed to create tag map", err.Error())
+		}
 	} else {
-		data.Tag = resource_reservation.NewTagValueNull()
+		data.Tag = types.MapNull(types.StringType)
 	}
 	return diags
 }
