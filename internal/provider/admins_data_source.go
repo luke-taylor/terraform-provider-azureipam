@@ -42,7 +42,7 @@ func (d *adminsDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	resp.Diagnostics.Append(callAdminsAPI(ctx, &data, d.client)...)
+	resp.Diagnostics.Append(adminsApiGet(ctx, &data, d.client)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -72,7 +72,7 @@ func (d *adminsDataSource) Configure(_ context.Context, req datasource.Configure
 // Typically this method would contain logic that makes an HTTP call to a remote API, and then stores
 // computed results back to the data model. For example purposes, this function just sets computed Admins
 // values to mock values to avoid data consistency errors.
-func callAdminsAPI(ctx context.Context, admins *datasource_admins.AdminsModel, client *client.Client) diag.Diagnostics {
+func adminsApiGet(ctx context.Context, admins *datasource_admins.AdminsModel, client *client.Client) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// Create the request

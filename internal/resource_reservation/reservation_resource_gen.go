@@ -4,10 +4,9 @@ package resource_reservation
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
@@ -16,65 +15,83 @@ func ReservationResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"block": schema.StringAttribute{
-				Required: 					true,
+				Required:            true,
 				Description:         "Name of the target Block",
 				MarkdownDescription: "Name of the target Block",
 			},
 			"cidr": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(regexp.MustCompile("x.x.x.x/x"), ""),
-				},
-			},
-			"created_by": schema.StringAttribute{
-				Computed: true,
-			},
-			"created_on": schema.NumberAttribute{
-				Computed: true,
-			},
-			"desc": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-			},
-			"id": schema.StringAttribute{
-				Computed: true,
-			},
-			"reservation": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "ID of the target Reservation",
-				MarkdownDescription: "ID of the target Reservation",
+				Description:         "CIDR of the Reservation.",
+				MarkdownDescription: "CIDR of the Reservation.",
+			},
+			"created_by": schema.StringAttribute{
+				Computed:            true,
+				Description:         "ID of the user who created the Reservation.",
+				MarkdownDescription: "ID of the user who created the Reservation.",
+			},
+			"created_on": schema.NumberAttribute{
+				Computed:            true,
+				Description:         "Timestamp of the Reservation creation.",
+				MarkdownDescription: "Timestamp of the Reservation creation.",
+			},
+			"desc": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Description of the Reservation",
+				MarkdownDescription: "Description of the Reservation",
+				Default:             stringdefault.StaticString("New Reservation."),
+			},
+			"id": schema.StringAttribute{
+				Computed:            true,
+				Description:         "ID of the Reservation.",
+				MarkdownDescription: "ID of the Reservation.",
 			},
 			"reverse_search": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "Enable reverse search for the Reservation",
+				MarkdownDescription: "Enable reverse search for the Reservation",
+				Default:             booldefault.StaticBool(false),
 			},
 			"settled_by": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "ID of the user who settled the Reservation.",
+				MarkdownDescription: "ID of the user who settled the Reservation.",
 			},
 			"settled_on": schema.NumberAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Timestamp of the Reservation settlement.",
+				MarkdownDescription: "Timestamp of the Reservation settlement.",
 			},
 			"size": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "Size of the Reservation. Network mask bits.",
+				MarkdownDescription: "Size of the Reservation. Network mask bits.",
 			},
 			"smallest_cidr": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "Enable smallest CIDR for the Reservation",
+				MarkdownDescription: "Enable smallest CIDR for the Reservation",
+				Default:             booldefault.StaticBool(false),
 			},
 			"space": schema.StringAttribute{
-				Required: 					true,
+				Required:            true,
 				Description:         "Name of the target Space",
 				MarkdownDescription: "Name of the target Space",
 			},
 			"status": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Status of the Reservation",
+				MarkdownDescription: "Status of the Reservation",
 			},
 			"tag": schema.MapAttribute{
-				ElementType: types.StringType,
-				Computed:    true,
+				ElementType:         types.StringType,
+				Computed:            true,
+				Description:         "Tags of the Reservation",
+				MarkdownDescription: "Tags of the Reservation",
 			},
 		},
 	}
@@ -87,7 +104,6 @@ type ReservationModel struct {
 	CreatedOn     types.Number `tfsdk:"created_on"`
 	Desc          types.String `tfsdk:"desc"`
 	Id            types.String `tfsdk:"id"`
-	Reservation   types.String `tfsdk:"reservation"`
 	ReverseSearch types.Bool   `tfsdk:"reverse_search"`
 	SettledBy     types.String `tfsdk:"settled_by"`
 	SettledOn     types.Number `tfsdk:"settled_on"`

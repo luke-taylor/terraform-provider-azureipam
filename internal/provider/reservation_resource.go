@@ -31,7 +31,6 @@ type ReservationAPIModel struct {
 	Tag           map[string]string `json:"tag,omitempty"`
 	ReverseSearch bool              `json:"reverse_search,omitempty"`
 	Size          int64             `json:"size,omitempty"`
-	Reservation   string            `json:"reservation,omitempty"`
 	SmallestCidr  bool              `json:"smallest_cidr,omitempty"`
 }
 
@@ -61,7 +60,7 @@ func (r *reservationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	resp.Diagnostics.Append(callReservationAPI(ctx, &data, r.client, "POST")...)
+	resp.Diagnostics.Append(reservationApiPost(ctx, &data, r.client, "POST")...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -77,7 +76,7 @@ func (r *reservationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	resp.Diagnostics.Append(callReservationAPIGet(ctx, &data, r.client, "GET")...)
+	resp.Diagnostics.Append(reservationApiGetDelete(ctx, &data, r.client, "GET")...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -93,7 +92,7 @@ func (r *reservationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	resp.Diagnostics.Append(callReservationAPI(ctx, &data, r.client, "POST")...)
+	resp.Diagnostics.Append(reservationApiPost(ctx, &data, r.client, "POST")...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -109,7 +108,7 @@ func (r *reservationResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	resp.Diagnostics.Append(callReservationAPIGet(ctx, &data, r.client, "DELETE")...)
+	resp.Diagnostics.Append(reservationApiGetDelete(ctx, &data, r.client, "DELETE")...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -134,7 +133,7 @@ func (r *reservationResource) Configure(_ context.Context, req resource.Configur
 	r.client = client
 }
 
-func callReservationAPIGet(ctx context.Context, data *resource_reservation.ReservationModel, client *client.Client, method string) diag.Diagnostics {
+func reservationApiGetDelete(ctx context.Context, data *resource_reservation.ReservationModel, client *client.Client, method string) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	payload := ReservationAPIModel{
@@ -170,7 +169,6 @@ func callReservationAPIGet(ctx context.Context, data *resource_reservation.Reser
 		diags.AddError("API request failed", err.Error())
 		return diags
 	}
-
 	// Assuming `DoRequest` returns raw JSON data and status code together
 	// Unmarshal the response into a temporary struct that matches the API response
 	if method != "DELETE" {
@@ -180,38 +178,18 @@ func callReservationAPIGet(ctx context.Context, data *resource_reservation.Reser
 			diags.AddError("Failed to unmarshal API response", err.Error())
 			return diags
 		}
+		// add write respones to standard output + add HERE to make more idetnifable
 
 		// Map the API response to the Terraform model
-		data.Id = types.StringValue(response.Id)
-		data.Cidr = types.StringValue(response.CIDR)
-		data.CreatedBy = types.StringValue(response.CreatedBy)
-		data.ReverseSearch = types.BoolValue(response.ReverseSearch)
-		data.Size = types.Int64Value(response.Size)
-		data.Desc = types.StringValue(response.Desc)
 		settledOnBigFloat := big.NewFloat(response.SettledOn)
 		data.SettledOn = types.NumberValue(settledOnBigFloat)
 		data.SettledBy = types.StringValue(response.SettledBy)
-		createdOnBigFloat := big.NewFloat(response.CreatedOn)
-		data.CreatedOn = types.NumberValue(createdOnBigFloat)
 		data.Status = types.StringValue(response.Status)
-		data.Reservation = types.StringValue(response.Reservation)
-		if response.Tag != nil {
-			tagElements := make(map[string]attr.Value)
-			for k, v := range response.Tag {
-				tagElements[k] = types.StringValue(v)
-			}
-			data.Tag, _ = types.MapValue(types.StringType, tagElements)
-			if err != nil {
-				diags.AddError("Failed to create tag map", err.Error())
-			}
-		} else {
-			data.Tag = types.MapNull(types.StringType)
-		}
 	}
 	return diags
 }
 
-func callReservationAPI(ctx context.Context, data *resource_reservation.ReservationModel, client *client.Client, method string) diag.Diagnostics {
+func reservationApiPost(ctx context.Context, data *resource_reservation.ReservationModel, client *client.Client, method string) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	payload := ReservationAPIModel{
@@ -220,6 +198,8 @@ func callReservationAPI(ctx context.Context, data *resource_reservation.Reservat
 		SmallestCidr:  data.SmallestCidr.ValueBool(),
 		ReverseSearch: data.ReverseSearch.ValueBool(),
 		Size:          data.Size.ValueInt64(),
+		Desc:          data.Desc.ValueString(),
+		CIDR:          data.Cidr.ValueString(),
 	}
 
 	// Construct the API URL
@@ -258,7 +238,6 @@ func callReservationAPI(ctx context.Context, data *resource_reservation.Reservat
 		diags.AddError("Failed to unmarshal API response", err.Error())
 		return diags
 	}
-
 	// Map the API response to the Terraform model
 	data.Id = types.StringValue(response.Id)
 	data.Cidr = types.StringValue(response.CIDR)
@@ -270,7 +249,9 @@ func callReservationAPI(ctx context.Context, data *resource_reservation.Reservat
 	createdOnBigFloat := big.NewFloat(response.CreatedOn)
 	data.CreatedOn = types.NumberValue(createdOnBigFloat)
 	data.Status = types.StringValue(response.Status)
-	data.Reservation = types.StringValue(response.Reservation)
+	if data.Size.ValueInt64() == 0 {
+		data.Size = types.Int64Value(response.Size)
+	} // data.Size = types.Int64Value(response.Size)
 	if response.Tag != nil {
 		tagElements := make(map[string]attr.Value)
 		for k, v := range response.Tag {
