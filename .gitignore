@@ -30,6 +30,7 @@ openapi.json
 provider-code-spec.json
 **.tfstate
 **.tfstate.backup
+commands.txt
 
 website/vendor
 

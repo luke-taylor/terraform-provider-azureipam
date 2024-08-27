@@ -39,7 +39,7 @@ func (p *azureipamProvider) Schema(ctx context.Context, req provider.SchemaReque
 }
 
 func (p *azureipamProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	tflog.Info(ctx, "Configuring HashiCups client")
+	tflog.Info(ctx, "Configuring Azure IPAM client")
 	var config gen.AzureipamModel
 	diags := req.Config.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
@@ -111,7 +111,7 @@ func (p *azureipamProvider) Configure(ctx context.Context, req provider.Configur
 	if token == "" {
 		token = azToken
 	}
-	// Create a new HashiCups client using the configuration values
+	// Create a new Azure IPAM client using the configuration values
 	client, err := client.NewClient(&host, &token)
 	if err != nil {
 		resp.Diagnostics.AddError(
