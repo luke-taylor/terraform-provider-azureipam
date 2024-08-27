@@ -6,9 +6,6 @@ import (
 	"time"
 )
 
-// HostURL - Default Azure IPAM URL
-const HostURL string = "https://ipam-xpmctiprtdfam.azurewebsites.net"
-
 // Client -
 type Client struct {
 	HostURL    string
@@ -21,8 +18,7 @@ func NewClient(host, token *string) (*Client, error) {
 	c := Client{
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 		// Default Azure IPAM URL
-		HostURL: HostURL,
-		Token:   *token,
+		Token: *token,
 	}
 
 	if host != nil {

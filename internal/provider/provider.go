@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -26,12 +25,6 @@ func New(version string) func() provider.Provider {
 
 type azureipamProvider struct {
 	version string
-}
-
-type azureipamProviderModel struct {
-	Host     types.String `tfsdk:"host"`
-	Token    types.String `tfsdk:"token"`
-	ClientID types.String `tfsdk:"client_id"`
 }
 
 func (p *azureipamProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
