@@ -6,43 +6,44 @@ import (
 	"terraform-provider-azureipam/internal/client"
 	"terraform-provider-azureipam/internal/gen/data_sources"
 
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 )
 
-var _ datasource.DataSource = (*adminsDataSource)(nil)
+var _ datasource.DataSource = (*reservationDataSource)(nil)
 
-func NewAdminsDataSource() datasource.DataSource {
-	return &adminsDataSource{}
+func NewReservationDataSource() datasource.DataSource {
+	return &reservationDataSource{}
 }
 
-type adminsDataSource struct {
+type reservationDataSource struct {
 	client *client.Client
 }
 
-func (d *adminsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_admins"
+func (d *reservationDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_reservation"
 }
 
-func (d *adminsDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	resp.Schema = data_sources.AdminsDataSourceSchema(ctx)
+func (d *reservationDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = data_sources.ReservationDataSourceSchema(ctx)
 }
 
-func (d *adminsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data data_sources.AdminsModel
+func (d *reservationDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data data_sources.ReservationModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(d.client.AdminsApiGet(ctx, &data)...)
+	resp.Diagnostics.Append(d.client.ReservationApiGet(ctx, &data,)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
-func (d *adminsDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *reservationDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Add a nil check when handling ProviderData because Terraform
 	// sets that data after it calls the ConfigureProvider RPC.
 	if req.ProviderData == nil {

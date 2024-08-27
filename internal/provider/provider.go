@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 	"terraform-provider-azureipam/internal/client"
-	"terraform-provider-azureipam/internal/gen"
+	gen_provider "terraform-provider-azureipam/internal/gen/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -28,12 +28,12 @@ type azureipamProvider struct {
 }
 
 func (p *azureipamProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
-	resp.Schema = gen.AzureipamProviderSchema(ctx)
+	resp.Schema = gen_provider.AzureipamProviderSchema(ctx)
 }
 
 func (p *azureipamProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	tflog.Info(ctx, "Configuring Azure IPAM client")
-	var config gen.AzureipamModel
+	var config gen_provider.AzureipamModel
 	diags := req.Config.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -127,6 +127,7 @@ func (p *azureipamProvider) Metadata(ctx context.Context, req provider.MetadataR
 func (p *azureipamProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewAdminsDataSource,
+		NewReservationDataSource,
 	}
 }
 

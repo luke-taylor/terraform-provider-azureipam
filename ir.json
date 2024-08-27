@@ -1,197 +1,276 @@
 {
-	"datasources": [
-		{
-			"name": "admins",
-			"schema": {
-				"attributes": [
-					{
-						"name": "admins",
-						"set_nested": {
-							"computed_optional_required": "computed",
-							"nested_object": {
-								"attributes": [
-									{
-										"name": "email",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "id",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "name",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "type",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									}
-								]
-							}
-						}
-					}
-				]
-			}
-		}
-	],
-	"provider": {
-		"name": "azureipam",
-		"schema": {
-			"markdown_description": "A terraform provider for managing Azure IPAM.",
-			"description": "A terraform provider for managing Azure IPAM.",
-			"attributes": [
-				{
-					"name": "host_url",
-					"string": {
-						"optional_required": "required",
-						"description": "The URL of the Azure IPAM Soluton. If not specified, value will be attempted to be read from the `IPAM_HOST_URL` environment variable."
-					}
-				},
-				{
-					"name": "token",
-					"string": {
-						"optional_required": "optional",
-						"sensitive": true,
-						"description": "The bearer token to authenticate with the Azure IPAM Solution. If not specified, value will be attempted to be read from the `IPAM_TOKEN` environment variable."
-					}
-				},
-				{
-					"name": "engine_client_id",
-					"string": {
-						"optional_required": "optional",
-						"sensitive": true,
-						"description": "The application (client) id of the App Registration in Micorsoft Entra ID responsible for the Azure IPAM Engine. If not specified, value will be attempted to be read from the `IPAM_ENGINE_CLIENT_ID` environment variable."
-					}
-				}
-			]
-		}
-	},
-	"resources": [
+  "provider": {
+    "name": "azureipam",
+    "schema": {
+      "markdown_description": "A terraform provider for managing Azure IPAM.",
+      "description": "A terraform provider for managing Azure IPAM.",
+      "attributes": [
+        {
+          "name": "host_url",
+          "string": {
+            "optional_required": "required",
+            "description": "The URL of the Azure IPAM Soluton. If not specified, value will be attempted to be read from the `IPAM_HOST_URL` environment variable."
+          }
+        },
+        {
+          "name": "token",
+          "string": {
+            "optional_required": "optional",
+            "sensitive": true,
+            "description": "The bearer token to authenticate with the Azure IPAM Solution. If not specified, value will be attempted to be read from the `IPAM_TOKEN` environment variable."
+          }
+        },
+        {
+          "name": "engine_client_id",
+          "string": {
+            "optional_required": "optional",
+            "sensitive": true,
+            "description": "The application (client) id of the App Registration in Micorsoft Entra ID responsible for the Azure IPAM Engine. If not specified, value will be attempted to be read from the `IPAM_ENGINE_CLIENT_ID` environment variable."
+          }
+        }
+      ]
+    }
+  },
+  "resources": [
+    {
+      "name": "reservation",
+      "schema": {
+        "attributes": [
+          {
+            "name": "cidr",
+            "string": {
+              "description": "CIDR of the Reservation.",
+              "computed_optional_required": "computed_optional"
+            }
+          },
+          {
+            "name": "desc",
+            "string": {
+              "description": "Description of the Reservation",
+              "computed_optional_required": "computed_optional",
+              "default": {
+                "static": "New Reservation."
+              }
+            }
+          },
+          {
+            "name": "reverse_search",
+            "bool": {
+              "description": "Enable reverse search for the Reservation",
+              "computed_optional_required": "computed_optional",
+              "default": {
+                "static": false
+              }
+            }
+          },
+          {
+            "name": "size",
+            "int64": {
+              "description": "Size of the Reservation. Network mask bits.",
+              "computed_optional_required": "computed_optional"
+            }
+          },
+          {
+            "name": "smallest_cidr",
+            "bool": {
+              "description": "Enable smallest CIDR for the Reservation",
+              "computed_optional_required": "computed_optional",
+              "default": {
+                "static": false
+              }
+            }
+          },
+          {
+            "name": "block",
+            "string": {
+              "description": "Name of the target Block",
+              "computed_optional_required": "required"
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "description": "ID of the user who created the Reservation.",
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "created_on",
+            "number": {
+              "description": "Timestamp of the Reservation creation.",
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "id",
+            "string": {
+              "description": "ID of the Reservation.",
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "settled_by",
+            "string": {
+              "description": "ID of the user who settled the Reservation.",
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "settled_on",
+            "number": {
+              "description": "Timestamp of the Reservation settlement.",
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "space",
+            "string": {
+              "description": "Name of the target Space",
+              "computed_optional_required": "required"
+            }
+          },
+          {
+            "name": "status",
+            "string": {
+              "description": "Status of the Reservation",
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "tag",
+            "map": {
+              "description": "Tags of the Reservation",
+              "computed_optional_required": "computed",
+              "element_type": {
+                "string": {}
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "datasources": [
+    {
+      "name": "admins",
+      "schema": {
+        "attributes": [
+          {
+            "name": "admins",
+            "set_nested": {
+              "computed_optional_required": "computed",
+              "nested_object": {
+                "attributes": [
+                  {
+                    "name": "email",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "id",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "type",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
 		{
 			"name": "reservation",
 			"schema": {
 				"attributes": [
 					{
-						"name": "cidr",
+						"name": "space",
 						"string": {
-							"description": "CIDR of the Reservation.",
-							"computed_optional_required": "computed_optional"
-						}
-					},
-					{
-						"name": "desc",
-						"string": {
-							"description": "Description of the Reservation",
-							"computed_optional_required": "computed_optional",
-							"default": {
-								"static": "New Reservation."
-							}
-						}
-					},
-					{
-						"name": "reverse_search",
-						"bool": {
-							"description": "Enable reverse search for the Reservation",
-							"computed_optional_required": "computed_optional",
-							"default": {
-								"static": false
-							}
-						}
-					},
-					{
-						"name": "size",
-						"int64": {
-							"description": "Size of the Reservation. Network mask bits.",
-							"computed_optional_required": "computed_optional"
-						}
-					},
-					{
-						"name": "smallest_cidr",
-						"bool": {
-							"description": "Enable smallest CIDR for the Reservation",
-							"computed_optional_required": "computed_optional",
-							"default": {
-								"static": false
-							}
+							"computed_optional_required": "required",
+							"description": "Name of the target Space"
 						}
 					},
 					{
 						"name": "block",
 						"string": {
-							"description": "Name of the target Block",
-							"computed_optional_required": "required"
+							"computed_optional_required": "required",
+							"description": "Name of the target Block"
+						}
+					},
+					{
+						"name": "cidr",
+						"string": {
+							"computed_optional_required": "computed"
 						}
 					},
 					{
 						"name": "created_by",
 						"string": {
-							"description": "ID of the user who created the Reservation.",
 							"computed_optional_required": "computed"
 						}
 					},
 					{
 						"name": "created_on",
 						"number": {
-							"description": "Timestamp of the Reservation creation.",
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "desc",
+						"string": {
 							"computed_optional_required": "computed"
 						}
 					},
 					{
 						"name": "id",
 						"string": {
-							"description": "ID of the Reservation.",
-							"computed_optional_required": "computed"
+							"computed_optional_required": "required"
 						}
 					},
 					{
 						"name": "settled_by",
 						"string": {
-							"description": "ID of the user who settled the Reservation.",
 							"computed_optional_required": "computed"
 						}
 					},
 					{
 						"name": "settled_on",
 						"number": {
-							"description": "Timestamp of the Reservation settlement.",
 							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "space",
-						"string": {
-							"description": "Name of the target Space",
-							"computed_optional_required": "required"
 						}
 					},
 					{
 						"name": "status",
 						"string": {
-							"description": "Status of the Reservation",
 							"computed_optional_required": "computed"
 						}
 					},
-					{
-						"name": "tag",
-						"map": {
-							"description": "Tags of the Reservation",
-							"computed_optional_required": "computed",
-							"element_type": {
-								"string": {}
-							}
-						}
-					}
+          {
+            "name": "tag",
+            "map": {
+              "description": "Tags of the Reservation",
+              "computed_optional_required": "computed",
+              "element_type": {
+                "string": {}
+              }
+            }
+          }
 				]
 			}
 		}
-	],
-	"version": "0.1"
+  ],
+  "version": "0.1"
 }
