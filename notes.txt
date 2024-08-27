@@ -6,9 +6,11 @@ curl https://ipam-xpmctiprtdfam.azurewebsites.net/api/openapi.json--output opena
 
 tfplugingen-openapi generate \
   --config ./generator_config.yml \
-  --output ./provider-code-spec.json \
+  --output ./provider-code-specv2.json \
   ./openapi.json
 
 tfplugingen-framework scaffold data-source \
   --name admins \
   --output-dir ./internal/provider
+
+tfplugingen-framework generate resources   --input ./provider-code-spec.json   --output ./internal 

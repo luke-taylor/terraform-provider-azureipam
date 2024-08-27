@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"terraform-provider-azureipam/internal/client"
-	"terraform-provider-azureipam/internal/resource_reservation"
+	"terraform-provider-azureipam/internal/gen"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -49,11 +49,11 @@ func (r *reservationResource) Metadata(ctx context.Context, req resource.Metadat
 }
 
 func (r *reservationResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = resource_reservation.ReservationResourceSchema(ctx)
+	resp.Schema = gen.ReservationResourceSchema(ctx)
 }
 
 func (r *reservationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data resource_reservation.ReservationModel
+	var data gen.ReservationModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
@@ -69,7 +69,7 @@ func (r *reservationResource) Create(ctx context.Context, req resource.CreateReq
 }
 
 func (r *reservationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data resource_reservation.ReservationModel
+	var data gen.ReservationModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
@@ -85,7 +85,7 @@ func (r *reservationResource) Read(ctx context.Context, req resource.ReadRequest
 }
 
 func (r *reservationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data resource_reservation.ReservationModel
+	var data gen.ReservationModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
@@ -101,7 +101,7 @@ func (r *reservationResource) Update(ctx context.Context, req resource.UpdateReq
 }
 
 func (r *reservationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data resource_reservation.ReservationModel
+	var data gen.ReservationModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
@@ -133,7 +133,7 @@ func (r *reservationResource) Configure(_ context.Context, req resource.Configur
 	r.client = client
 }
 
-func reservationApiGetDelete(ctx context.Context, data *resource_reservation.ReservationModel, client *client.Client, method string) diag.Diagnostics {
+func reservationApiGetDelete(ctx context.Context, data *gen.ReservationModel, client *client.Client, method string) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	payload := ReservationAPIModel{
@@ -189,7 +189,7 @@ func reservationApiGetDelete(ctx context.Context, data *resource_reservation.Res
 	return diags
 }
 
-func reservationApiPost(ctx context.Context, data *resource_reservation.ReservationModel, client *client.Client, method string) diag.Diagnostics {
+func reservationApiPost(ctx context.Context, data *gen.ReservationModel, client *client.Client, method string) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	payload := ReservationAPIModel{

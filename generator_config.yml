@@ -8,6 +8,10 @@ data_sources:
     read:
       path: /api/admin/admins
       method: GET
+  reservations:
+    read: 
+      path: /api/spaces/{space}/blocks/{block}/reservations
+      method: GET
 resources:
   reservation:
     read: 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 	"terraform-provider-azureipam/internal/client"
-	"terraform-provider-azureipam/internal/provider_azureipam"
+	"terraform-provider-azureipam/internal/gen"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -35,12 +35,12 @@ type azureipamProviderModel struct {
 }
 
 func (p *azureipamProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
-	resp.Schema = provider_azureipam.AzureipamProviderSchema(ctx)
+	resp.Schema = gen.AzureipamProviderSchema(ctx)
 }
 
 func (p *azureipamProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	tflog.Info(ctx, "Configuring HashiCups client")
-	var config provider_azureipam.AzureipamModel
+	var config gen.AzureipamModel
 	diags := req.Config.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -107,7 +107,7 @@ func (p *azureipamProvider) Configure(ctx context.Context, req provider.Configur
 		return
 	}
 
-	azToken, _ := getAzureAccessToken(clientID)
+	azToken, _ := client.GetAzureAccessToken(clientID)
 	if token == "" {
 		token = azToken
 	}

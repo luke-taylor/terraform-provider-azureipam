@@ -1,4 +1,4 @@
-package provider
+package client
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 )
 
-func getAzureAccessToken(apiGuid string) (string, error) {
+func GetAzureAccessToken(apiGuid string) (string, error) {
 	// Create a credential using the default Azure credential chain
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
