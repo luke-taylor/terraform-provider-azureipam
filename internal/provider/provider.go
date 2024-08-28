@@ -128,6 +128,7 @@ func (p *azureipamProvider) DataSources(ctx context.Context) []func() datasource
 	return []func() datasource.DataSource{
 		NewAdminsDataSource,
 		NewReservationDataSource,
+		NewReservationsDataSource,
 	}
 }
 

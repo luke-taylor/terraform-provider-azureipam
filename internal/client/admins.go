@@ -12,35 +12,42 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func (c *Client) AdminsApiGet(ctx context.Context, admins *data_sources.AdminsModel) diag.Diagnostics {
+// Define the AdminsApiModel struct
+type adminsApiModel struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Type  string `json:"type"`
+}
+
+// AdminsApiGet retrieves the list of admins and maps them to the AdminsModel.
+func (c *Client) AdminsApiGet(ctx context.Context, data *data_sources.AdminsModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// Create the request
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/admin/admins", c.HostURL), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/api/admin/admins", c.HostURL), nil)
 	if err != nil {
 		diags.AddError("Request Creation Error", fmt.Sprintf("Could not create HTTP request: %s", err))
 		return diags
 	}
 
-	// Make the request
-	adminsGet, err := c.DoRequest(req, &c.Token)
+	// Execute the request
+	respBody, err := c.DoRequest(req, &c.Token)
 	if err != nil {
 		diags.AddError("API Request Error", fmt.Sprintf("API request failed: %s", err))
 		return diags
 	}
 
-	// Unmarshal the JSON response into a slice of maps
-	var adminsDataRaw []map[string]interface{}
-	err = json.Unmarshal(adminsGet, &adminsDataRaw)
-	if err != nil {
+	// Unmarshal the JSON response into a slice of adminsApiModel
+	var response []adminsApiModel
+	if err := json.Unmarshal(respBody, &response); err != nil {
 		diags.AddError("Response Unmarshal Error", fmt.Sprintf("Failed to unmarshal response: %s", err))
 		return diags
 	}
 
-	// Convert the raw data to Terraform types
-	elements := make([]attr.Value, len(adminsDataRaw))
-	for i, adminRaw := range adminsDataRaw {
-		// Convert each map entry to Terraform types
+	// Convert the response to Terraform types
+	elements := make([]attr.Value, len(response))
+	for i, admin := range response {
 		objVal, objDiags := types.ObjectValue(
 			map[string]attr.Type{
 				"id":    types.StringType,
@@ -49,10 +56,10 @@ func (c *Client) AdminsApiGet(ctx context.Context, admins *data_sources.AdminsMo
 				"type":  types.StringType,
 			},
 			map[string]attr.Value{
-				"id":    types.StringValue(adminRaw["id"].(string)),
-				"name":  types.StringValue(adminRaw["name"].(string)),
-				"email": types.StringValue(adminRaw["email"].(string)),
-				"type":  types.StringValue(adminRaw["type"].(string)),
+				"id":    types.StringValue(admin.ID),
+				"name":  types.StringValue(admin.Name),
+				"email": types.StringValue(admin.Email),
+				"type":  types.StringValue(admin.Type),
 			},
 		)
 		diags.Append(objDiags...)
@@ -62,7 +69,7 @@ func (c *Client) AdminsApiGet(ctx context.Context, admins *data_sources.AdminsMo
 		elements[i] = objVal
 	}
 
-	// Set the admins value
+	// Set the Admins field in the AdminsModel
 	adminsSet, setDiags := types.SetValue(
 		types.ObjectType{
 			AttrTypes: map[string]attr.Type{
@@ -79,7 +86,7 @@ func (c *Client) AdminsApiGet(ctx context.Context, admins *data_sources.AdminsMo
 		return diags
 	}
 
-	admins.Admins = adminsSet
+	data.Admins = adminsSet
 
 	return diags
 }

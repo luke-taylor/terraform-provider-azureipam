@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-type ReservationApiModel struct {
+type reservationApiModel struct {
 	Id            string            `json:"id,omitempty"`
 	Space         string            `json:"space,omitempty"`
 	Block         string            `json:"block,omitempty"`
@@ -33,162 +33,163 @@ type ReservationApiModel struct {
 	SmallestCidr  bool              `json:"smallest_cidr,omitempty"`
 }
 
-func (c *Client) ReservationApiGet(ctx context.Context, data *data_sources.ReservationModel) diag.Diagnostics {
+// ReservationsApiGet handles GET requests for reservations
+func (c *Client) ReservationsApiGet(ctx context.Context, data *data_sources.ReservationsModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	payload := ReservationApiModel{
-		Space: data.Space.ValueString(),
-		Block: data.Block.ValueString(),
-		Id:    data.Id.ValueString(),
-	}
-
-	// Construct the API URL
-	space := strings.Trim(data.Space.ValueString(), "\"")
-	block := strings.Trim(data.Block.ValueString(), "\"")
-	id := strings.Trim(data.Id.ValueString(), "\"")
-	url := fmt.Sprintf("%s/api/spaces/%s/blocks/%s/reservations/%s", c.HostURL, space, block, id)
-
-	// Marshal the payload to JSON
-	reservationData, err := json.Marshal(payload)
-	if err != nil {
-		diags.AddError("Failed to marshal reservation data", err.Error())
-		return diags
-	}
+	// Construct the URL for the GET request
+	url := fmt.Sprintf("%s/api/spaces/%s/blocks/%s/reservations",
+		c.HostURL, strings.Trim(data.Space.ValueString(), "\""), strings.Trim(data.Block.ValueString(), "\""))
 
 	// Create the HTTP request
-	req, err := http.NewRequest("GET", url, bytes.NewBuffer(reservationData))
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		diags.AddError("Failed to create HTTP request", err.Error())
+		diags.AddError("Request Creation Error", fmt.Sprintf("Could not create HTTP request: %s", err))
 		return diags
 	}
-	req.Header.Set("Content-Type", "application/json")
 
-	// Execute the request
+	// Execute the request and obtain the response
 	respBody, err := c.DoRequest(req, &c.Token)
 	if err != nil {
-		diags.AddError("API request failed", err.Error())
+		diags.AddError("API Request Error", fmt.Sprintf("API request failed: %s", err))
 		return diags
 	}
-	// Assuming `DoRequest` returns raw JSON data and status code together
-	// Unmarshal the response into a temporary struct that matches the API response
-	response := ReservationApiModel{}
-	// Unmarshal the response body
-	if err := json.Unmarshal(respBody, &response); err != nil {
-		diags.AddError("Failed to unmarshal API response", err.Error())
-		return diags
-	}
-	// add write respones to standard output + add HERE to make more idetnifable
 
-	// Map the API response to the Terraform model
-	settledOnBigFloat := big.NewFloat(response.SettledOn)
-	data.SettledOn = types.NumberValue(settledOnBigFloat)
-	data.SettledBy = types.StringValue(response.SettledBy)
-	data.Status = types.StringValue(response.Status)
-	data.Id = types.StringValue(response.Id)
-	data.Cidr = types.StringValue(response.CIDR)
-	data.CreatedBy = types.StringValue(response.CreatedBy)
-	data.Desc = types.StringValue(response.Desc)
-	createdOnBigFloat := big.NewFloat(response.CreatedOn)
-	data.CreatedOn = types.NumberValue(createdOnBigFloat)
-	data.Status = types.StringValue(response.Status)
-	if response.Tag != nil {
-		tagElements := make(map[string]attr.Value)
-		for k, v := range response.Tag {
-			tagElements[k] = types.StringValue(v)
+	// Unmarshal the JSON response into a slice of reservationApiModel
+	var reservations []reservationApiModel
+	if err := json.Unmarshal(respBody, &reservations); err != nil {
+		diags.AddError("Response Unmarshal Error", fmt.Sprintf("Failed to unmarshal response: %s", err))
+		return diags
+	}
+
+	// Convert the unmarshaled data to Terraform types
+	elements := make([]attr.Value, len(reservations))
+	for i, reservation := range reservations {
+		// Convert map[string]string to map[string]attr.Value
+		tagMap := make(map[string]attr.Value, len(reservation.Tag))
+		for k, v := range reservation.Tag {
+			tagMap[k] = types.StringValue(v)
 		}
-		data.Tag, _ = types.MapValue(types.StringType, tagElements)
-		if err != nil {
-			diags.AddError("Failed to create tag map", err.Error())
-		}
-	} else {
-		data.Tag = types.MapNull(types.StringType)
-	}
 
-	return diags
-}
-
-func (c *Client) ReservationApiGetDelete(ctx context.Context, data *resources.ReservationModel, method string) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	payload := ReservationApiModel{
-		Space: data.Space.ValueString(),
-		Block: data.Block.ValueString(),
-		Id:    data.Id.ValueString(),
-	}
-
-	// Construct the API URL
-	space := strings.Trim(data.Space.ValueString(), "\"")
-	block := strings.Trim(data.Block.ValueString(), "\"")
-	id := strings.Trim(data.Id.ValueString(), "\"")
-	url := fmt.Sprintf("%s/api/spaces/%s/blocks/%s/reservations/%s", c.HostURL, space, block, id)
-
-	// Marshal the payload to JSON
-	reservationData, err := json.Marshal(payload)
-	if err != nil {
-		diags.AddError("Failed to marshal reservation data", err.Error())
-		return diags
-	}
-
-	// Create the HTTP request
-	req, err := http.NewRequest(method, url, bytes.NewBuffer(reservationData))
-	if err != nil {
-		diags.AddError("Failed to create HTTP request", err.Error())
-		return diags
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// Execute the request
-	respBody, err := c.DoRequest(req, &c.Token)
-	if err != nil {
-		diags.AddError("API request failed", err.Error())
-		return diags
-	}
-	// Assuming `DoRequest` returns raw JSON data and status code together
-	// Unmarshal the response into a temporary struct that matches the API response
-	if method != "DELETE" {
-		response := ReservationApiModel{}
-		// Unmarshal the response body
-		if err := json.Unmarshal(respBody, &response); err != nil {
-			diags.AddError("Failed to unmarshal API response", err.Error())
+		objVal, objDiags := types.ObjectValue(
+			map[string]attr.Type{
+				"id":             types.StringType,
+				"space":          types.StringType,
+				"block":          types.StringType,
+				"cidr":           types.StringType,
+				"desc":           types.StringType,
+				"created_on":     types.Float64Type,
+				"created_by":     types.StringType,
+				"settled_by":     types.StringType,
+				"settled_on":     types.Float64Type,
+				"status":         types.StringType,
+				"tag":            types.MapType{ElemType: types.StringType},
+				"reverse_search": types.BoolType,
+				"size":           types.Int64Type,
+				"smallest_cidr":  types.BoolType,
+			},
+			map[string]attr.Value{
+				"id":             types.StringValue(reservation.Id),
+				"space":          types.StringValue(reservation.Space),
+				"block":          types.StringValue(reservation.Block),
+				"cidr":           types.StringValue(reservation.CIDR),
+				"desc":           types.StringValue(reservation.Desc),
+				"created_on":     types.Float64Value(reservation.CreatedOn),
+				"created_by":     types.StringValue(reservation.CreatedBy),
+				"settled_by":     types.StringValue(reservation.SettledBy),
+				"settled_on":     types.Float64Value(reservation.SettledOn),
+				"status":         types.StringValue(reservation.Status),
+				"tag":            types.MapValueMust(types.StringType, tagMap),
+				"reverse_search": types.BoolValue(reservation.ReverseSearch),
+				"size":           types.Int64Value(reservation.Size),
+				"smallest_cidr":  types.BoolValue(reservation.SmallestCidr),
+			},
+		)
+		diags.Append(objDiags...)
+		if diags.HasError() {
 			return diags
 		}
-		// add write respones to standard output + add HERE to make more idetnifable
-
-		// Map the API response to the Terraform model
-		settledOnBigFloat := big.NewFloat(response.SettledOn)
-		data.SettledOn = types.NumberValue(settledOnBigFloat)
-		data.SettledBy = types.StringValue(response.SettledBy)
-		data.Status = types.StringValue(response.Status)
-		data.Id = types.StringValue(response.Id)
-		data.Cidr = types.StringValue(response.CIDR)
-		data.CreatedBy = types.StringValue(response.CreatedBy)
-		data.Desc = types.StringValue(response.Desc)
-		createdOnBigFloat := big.NewFloat(response.CreatedOn)
-		data.CreatedOn = types.NumberValue(createdOnBigFloat)
-		data.Status = types.StringValue(response.Status)
-		if data.Size.ValueInt64() == 0 {
-			data.Size = types.Int64Value(response.Size)
-		} // data.Size = types.Int64Value(response.Size)
-		if response.Tag != nil {
-			tagElements := make(map[string]attr.Value)
-			for k, v := range response.Tag {
-				tagElements[k] = types.StringValue(v)
-			}
-			data.Tag, _ = types.MapValue(types.StringType, tagElements)
-			if err != nil {
-				diags.AddError("Failed to create tag map", err.Error())
-			}
-		} else {
-			data.Tag = types.MapNull(types.StringType)
-		}
+		elements[i] = objVal
 	}
+
+	// Set the Reservations field in the ReservationsModel
+	reservationsSet, setDiags := types.SetValue(
+		types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"id":             types.StringType,
+				"space":          types.StringType,
+				"block":          types.StringType,
+				"cidr":           types.StringType,
+				"desc":           types.StringType,
+				"created_on":     types.Float64Type,
+				"created_by":     types.StringType,
+				"settled_by":     types.StringType,
+				"settled_on":     types.Float64Type,
+				"status":         types.StringType,
+				"tag":            types.MapType{ElemType: types.StringType},
+				"reverse_search": types.BoolType,
+				"size":           types.Int64Type,
+				"smallest_cidr":  types.BoolType,
+			},
+		},
+		elements,
+	)
+	diags.Append(setDiags...)
+	if diags.HasError() {
+		return diags
+	}
+
+	data.Reservations = reservationsSet
+
 	return diags
 }
 
-func (c *Client) ReservationApiPost(ctx context.Context, data *resources.ReservationModel) diag.Diagnostics {
-	var diags diag.Diagnostics
+// ReservationApiGet handles GET requests for reservations
+func (c *Client) ReservationApiGet(ctx context.Context, data *data_sources.ReservationModel) diag.Diagnostics {
+	payload := reservationApiModel{
+		Space: data.Space.ValueString(),
+		Block: data.Block.ValueString(),
+		Id:    data.Id.ValueString(),
+	}
 
-	payload := ReservationApiModel{
+	url := fmt.Sprintf("%s/api/spaces/%s/blocks/%s/reservations/%s",
+		c.HostURL, strings.Trim(data.Space.ValueString(), "\""), strings.Trim(data.Block.ValueString(), "\""), strings.Trim(data.Id.ValueString(), "\""))
+
+	response, diags := c.reservationExecuteRequest(ctx, "GET", url, payload)
+	if diags.HasError() {
+		return diags
+	}
+
+	return mapApiResponseToModel(response, data)
+}
+
+// ReservationApiGetDelete handles GET and DELETE requests for reservations
+func (c *Client) ReservationApiGetDelete(ctx context.Context, data *resources.ReservationModel, method string) diag.Diagnostics {
+	payload := reservationApiModel{
+		Space: data.Space.ValueString(),
+		Block: data.Block.ValueString(),
+		Id:    data.Id.ValueString(),
+	}
+
+	url := fmt.Sprintf("%s/api/spaces/%s/blocks/%s/reservations/%s",
+		c.HostURL, strings.Trim(data.Space.ValueString(), "\""), strings.Trim(data.Block.ValueString(), "\""), strings.Trim(data.Id.ValueString(), "\""))
+
+	if method == "DELETE" {
+		_, diags := c.reservationExecuteRequest(ctx, method, url, payload)
+		return diags
+	}
+
+	response, diags := c.reservationExecuteRequest(ctx, method, url, payload)
+	if diags.HasError() {
+		return diags
+	}
+
+	return mapApiResponseToModel(response, data)
+}
+
+// ReservationApiPost handles POST requests for reservations
+func (c *Client) ReservationApiPost(ctx context.Context, data *resources.ReservationModel) diag.Diagnostics {
+	payload := reservationApiModel{
 		Space:         data.Space.ValueString(),
 		Block:         data.Block.ValueString(),
 		SmallestCidr:  data.SmallestCidr.ValueBool(),
@@ -198,67 +199,116 @@ func (c *Client) ReservationApiPost(ctx context.Context, data *resources.Reserva
 		CIDR:          data.Cidr.ValueString(),
 	}
 
-	// Construct the API URL
-	space := strings.Trim(data.Space.ValueString(), "\"")
-	block := strings.Trim(data.Block.ValueString(), "\"")
-	url := fmt.Sprintf("%s/api/spaces/%s/blocks/%s/reservations", c.HostURL, space, block)
+	url := fmt.Sprintf("%s/api/spaces/%s/blocks/%s/reservations", c.HostURL, strings.Trim(data.Space.ValueString(), "\""), strings.Trim(data.Block.ValueString(), "\""))
+
+	response, diags := c.reservationExecuteRequest(ctx, "POST", url, payload)
+	if diags.HasError() {
+		return diags
+	}
+
+	return mapApiResponseToModel(response, data)
+}
+
+// reservationExecuteRequest handles making the HTTP request and unmarshalling the response
+func (c *Client) reservationExecuteRequest(ctx context.Context, method, url string, payload reservationApiModel) (reservationApiModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
 
 	// Marshal the payload to JSON
 	reservationData, err := json.Marshal(payload)
 	if err != nil {
 		diags.AddError("Failed to marshal reservation data", err.Error())
-		return diags
+		return reservationApiModel{}, diags
 	}
 
-	// Create the HTTP request
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reservationData))
+	// Create the HTTP request with context
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(reservationData))
 	if err != nil {
 		diags.AddError("Failed to create HTTP request", err.Error())
-		return diags
+		return reservationApiModel{}, diags
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	// Execute the request
 	respBody, err := c.DoRequest(req, &c.Token)
 	if err != nil {
-		diags.AddError("API request failed", err.Error())
-		return diags
+		select {
+		case <-ctx.Done(): // Handle context cancellation or timeout
+			diags.AddError("Request canceled or timed out", ctx.Err().Error())
+		default:
+			diags.AddError("API request failed", err.Error())
+		}
+		return reservationApiModel{}, diags
 	}
 
-	// Assuming `DoRequest` returns raw JSON data and status code together
-	// Unmarshal the response into a temporary struct that matches the API response
+	// Initialize the response model
+	response := reservationApiModel{}
 
-	response := ReservationApiModel{}
-	// Unmarshal the response body
-	if err := json.Unmarshal(respBody, &response); err != nil {
-		diags.AddError("Failed to unmarshal API response", err.Error())
-		return diags
-	}
-	// Map the API response to the Terraform model
-	data.Id = types.StringValue(response.Id)
-	data.Cidr = types.StringValue(response.CIDR)
-	data.CreatedBy = types.StringValue(response.CreatedBy)
-	data.Desc = types.StringValue(response.Desc)
-	settledOnBigFloat := big.NewFloat(response.SettledOn)
-	data.SettledOn = types.NumberValue(settledOnBigFloat)
-	data.SettledBy = types.StringValue(response.SettledBy)
-	createdOnBigFloat := big.NewFloat(response.CreatedOn)
-	data.CreatedOn = types.NumberValue(createdOnBigFloat)
-	data.Status = types.StringValue(response.Status)
-	if data.Size.ValueInt64() == 0 {
-		data.Size = types.Int64Value(response.Size)
-	} // data.Size = types.Int64Value(response.Size)
-	if response.Tag != nil {
-		tagElements := make(map[string]attr.Value)
-		for k, v := range response.Tag {
-			tagElements[k] = types.StringValue(v)
+	// Only unmarshal the response if the method is not DELETE
+	if method != "DELETE" {
+		if err := json.Unmarshal(respBody, &response); err != nil {
+			diags.AddError("Failed to unmarshal API response", err.Error())
+			return reservationApiModel{}, diags
 		}
-		data.Tag, _ = types.MapValue(types.StringType, tagElements)
-		if err != nil {
-			diags.AddError("Failed to create tag map", err.Error())
-		}
-	} else {
-		data.Tag = types.MapNull(types.StringType)
 	}
+
+	return response, diags
+}
+
+// Helper function to map API response to Terraform model
+func mapApiResponseToModel(response reservationApiModel, model interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	switch data := model.(type) {
+	case *data_sources.ReservationModel:
+		data.Id = types.StringValue(response.Id)
+		data.Cidr = types.StringValue(response.CIDR)
+		data.CreatedBy = types.StringValue(response.CreatedBy)
+		data.Desc = types.StringValue(response.Desc)
+		data.Status = types.StringValue(response.Status)
+
+		settledOnBigFloat := big.NewFloat(response.SettledOn)
+		data.SettledOn = types.NumberValue(settledOnBigFloat)
+		data.SettledBy = types.StringValue(response.SettledBy)
+		createdOnBigFloat := big.NewFloat(response.CreatedOn)
+		data.CreatedOn = types.NumberValue(createdOnBigFloat)
+
+		if response.Tag != nil {
+			tagElements := make(map[string]attr.Value)
+			for k, v := range response.Tag {
+				tagElements[k] = types.StringValue(v)
+			}
+			data.Tag, _ = types.MapValue(types.StringType, tagElements)
+		} else {
+			data.Tag = types.MapNull(types.StringType)
+		}
+
+	case *resources.ReservationModel:
+		data.Id = types.StringValue(response.Id)
+		data.Cidr = types.StringValue(response.CIDR)
+		data.CreatedBy = types.StringValue(response.CreatedBy)
+		data.Desc = types.StringValue(response.Desc)
+		data.Status = types.StringValue(response.Status)
+
+		settledOnBigFloat := big.NewFloat(response.SettledOn)
+		data.SettledOn = types.NumberValue(settledOnBigFloat)
+		data.SettledBy = types.StringValue(response.SettledBy)
+		createdOnBigFloat := big.NewFloat(response.CreatedOn)
+		data.CreatedOn = types.NumberValue(createdOnBigFloat)
+
+		if response.Size != 0 {
+			data.Size = types.Int64Value(response.Size)
+		}
+
+		if response.Tag != nil {
+			tagElements := make(map[string]attr.Value)
+			for k, v := range response.Tag {
+				tagElements[k] = types.StringValue(v)
+			}
+			data.Tag, _ = types.MapValue(types.StringType, tagElements)
+		} else {
+			data.Tag = types.MapNull(types.StringType)
+		}
+	}
+
 	return diags
 }
