@@ -33,7 +33,6 @@ type reservationApiModel struct {
 	SmallestCidr  bool              `json:"smallest_cidr,omitempty"`
 }
 
-// ReservationsApiGet handles GET requests for reservations
 func (c *Client) ReservationsApiGet(ctx context.Context, data *data_sources.ReservationsModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -61,48 +60,29 @@ func (c *Client) ReservationsApiGet(ctx context.Context, data *data_sources.Rese
 		diags.AddError("Response Unmarshal Error", fmt.Sprintf("Failed to unmarshal response: %s", err))
 		return diags
 	}
-
-	// Convert the unmarshaled data to Terraform types
+	// print the response
 	elements := make([]attr.Value, len(reservations))
 	for i, reservation := range reservations {
-		// Convert map[string]string to map[string]attr.Value
-		tagMap := make(map[string]attr.Value, len(reservation.Tag))
+		tags := make(map[string]attr.Value, len(reservation.Tag))
 		for k, v := range reservation.Tag {
-			tagMap[k] = types.StringValue(v)
+			tags[k] = types.StringValue(v)
 		}
-
-		objVal, objDiags := types.ObjectValue(
-			map[string]attr.Type{
-				"id":             types.StringType,
-				"space":          types.StringType,
-				"block":          types.StringType,
-				"cidr":           types.StringType,
-				"desc":           types.StringType,
-				"created_on":     types.Float64Type,
-				"created_by":     types.StringType,
-				"settled_by":     types.StringType,
-				"settled_on":     types.Float64Type,
-				"status":         types.StringType,
-				"tag":            types.MapType{ElemType: types.StringType},
-				"reverse_search": types.BoolType,
-				"size":           types.Int64Type,
-				"smallest_cidr":  types.BoolType,
-			},
+		createdOn := big.NewFloat(reservation.CreatedOn)
+		settledOn := big.NewFloat(reservation.SettledOn)
+		tag, _ := types.MapValue(types.StringType, tags)
+		objVal, objDiags := data_sources.NewReservationsValue(data_sources.NewReservationsValueNull().AttributeTypes(ctx),
 			map[string]attr.Value{
-				"id":             types.StringValue(reservation.Id),
-				"space":          types.StringValue(reservation.Space),
-				"block":          types.StringValue(reservation.Block),
-				"cidr":           types.StringValue(reservation.CIDR),
-				"desc":           types.StringValue(reservation.Desc),
-				"created_on":     types.Float64Value(reservation.CreatedOn),
-				"created_by":     types.StringValue(reservation.CreatedBy),
-				"settled_by":     types.StringValue(reservation.SettledBy),
-				"settled_on":     types.Float64Value(reservation.SettledOn),
-				"status":         types.StringValue(reservation.Status),
-				"tag":            types.MapValueMust(types.StringType, tagMap),
-				"reverse_search": types.BoolValue(reservation.ReverseSearch),
-				"size":           types.Int64Value(reservation.Size),
-				"smallest_cidr":  types.BoolValue(reservation.SmallestCidr),
+				"id":         types.StringValue(reservation.Id),
+				"space":      types.StringValue(reservation.Space),
+				"block":      types.StringValue(reservation.Block),
+				"cidr":       types.StringValue(reservation.CIDR),
+				"desc":       types.StringValue(reservation.Desc),
+				"created_on": types.NumberValue(createdOn),
+				"created_by": types.StringValue(reservation.CreatedBy),
+				"settled_by": types.StringValue(reservation.SettledBy),
+				"settled_on": types.NumberValue(settledOn),
+				"status":     types.StringValue(reservation.Status),
+				"tag":        tag,
 			},
 		)
 		diags.Append(objDiags...)
@@ -111,35 +91,11 @@ func (c *Client) ReservationsApiGet(ctx context.Context, data *data_sources.Rese
 		}
 		elements[i] = objVal
 	}
+	fmt.Println("here")
+	fmt.Println(elements)
 
 	// Set the Reservations field in the ReservationsModel
-	reservationsSet, setDiags := types.SetValue(
-		types.ObjectType{
-			AttrTypes: map[string]attr.Type{
-				"id":             types.StringType,
-				"space":          types.StringType,
-				"block":          types.StringType,
-				"cidr":           types.StringType,
-				"desc":           types.StringType,
-				"created_on":     types.Float64Type,
-				"created_by":     types.StringType,
-				"settled_by":     types.StringType,
-				"settled_on":     types.Float64Type,
-				"status":         types.StringType,
-				"tag":            types.MapType{ElemType: types.StringType},
-				"reverse_search": types.BoolType,
-				"size":           types.Int64Type,
-				"smallest_cidr":  types.BoolType,
-			},
-		},
-		elements,
-	)
-	diags.Append(setDiags...)
-	if diags.HasError() {
-		return diags
-	}
-
-	data.Reservations = reservationsSet
+	data.Reservations, diags = types.SetValueFrom(ctx, data_sources.NewReservationsValueNull().Type(ctx), &elements)
 
 	return diags
 }

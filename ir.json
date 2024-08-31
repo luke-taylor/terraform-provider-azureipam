@@ -362,12 +362,16 @@
 											"computed_optional_required": "computed"
 										}
 									},
-									{
-										"name": "tag",
-										"single_nested": {
-											"computed_optional_required": "computed"
-										}
-									}
+                  {
+                    "name": "tag",
+                    "map": {
+                      "description": "Tags of the Reservation",
+                      "computed_optional_required": "computed",
+                      "element_type": {
+                        "string": {}
+                      }
+                    }
+                  }
 								]
 							}
 						}

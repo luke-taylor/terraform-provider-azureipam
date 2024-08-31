@@ -56,14 +56,11 @@ func ReservationsDataSourceSchema(ctx context.Context) schema.Schema {
 						"status": schema.StringAttribute{
 							Computed: true,
 						},
-						"tag": schema.SingleNestedAttribute{
-							Attributes: map[string]schema.Attribute{},
-							CustomType: TagType{
-								ObjectType: types.ObjectType{
-									AttrTypes: TagValue{}.AttributeTypes(ctx),
-								},
-							},
-							Computed: true,
+						"tag": schema.MapAttribute{
+							ElementType:         types.StringType,
+							Computed:            true,
+							Description:         "Tags of the Reservation",
+							MarkdownDescription: "Tags of the Reservation",
 						},
 					},
 					CustomType: ReservationsType{
@@ -311,12 +308,12 @@ func (t ReservationsType) ValueFromObject(ctx context.Context, in basetypes.Obje
 		return nil, diags
 	}
 
-	tagVal, ok := tagAttribute.(basetypes.ObjectValue)
+	tagVal, ok := tagAttribute.(basetypes.MapValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`tag expected to be basetypes.ObjectValue, was: %T`, tagAttribute))
+			fmt.Sprintf(`tag expected to be basetypes.MapValue, was: %T`, tagAttribute))
 	}
 
 	if diags.HasError() {
@@ -592,12 +589,12 @@ func NewReservationsValue(attributeTypes map[string]attr.Type, attributes map[st
 		return NewReservationsValueUnknown(), diags
 	}
 
-	tagVal, ok := tagAttribute.(basetypes.ObjectValue)
+	tagVal, ok := tagAttribute.(basetypes.MapValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`tag expected to be basetypes.ObjectValue, was: %T`, tagAttribute))
+			fmt.Sprintf(`tag expected to be basetypes.MapValue, was: %T`, tagAttribute))
 	}
 
 	if diags.HasError() {
@@ -698,7 +695,7 @@ type ReservationsValue struct {
 	SettledOn basetypes.NumberValue `tfsdk:"settled_on"`
 	Space     basetypes.StringValue `tfsdk:"space"`
 	Status    basetypes.StringValue `tfsdk:"status"`
-	Tag       basetypes.ObjectValue `tfsdk:"tag"`
+	Tag       basetypes.MapValue    `tfsdk:"tag"`
 	state     attr.ValueState
 }
 
@@ -718,8 +715,8 @@ func (v ReservationsValue) ToTerraformValue(ctx context.Context) (tftypes.Value,
 	attrTypes["settled_on"] = basetypes.NumberType{}.TerraformType(ctx)
 	attrTypes["space"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["status"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["tag"] = basetypes.ObjectType{
-		AttrTypes: TagValue{}.AttributeTypes(ctx),
+	attrTypes["tag"] = basetypes.MapType{
+		ElemType: types.StringType,
 	}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
@@ -845,25 +842,26 @@ func (v ReservationsValue) String() string {
 func (v ReservationsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	var tag basetypes.ObjectValue
+	tagVal, d := types.MapValue(types.StringType, v.Tag.Elements())
 
-	if v.Tag.IsNull() {
-		tag = types.ObjectNull(
-			TagValue{}.AttributeTypes(ctx),
-		)
-	}
+	diags.Append(d...)
 
-	if v.Tag.IsUnknown() {
-		tag = types.ObjectUnknown(
-			TagValue{}.AttributeTypes(ctx),
-		)
-	}
-
-	if !v.Tag.IsNull() && !v.Tag.IsUnknown() {
-		tag = types.ObjectValueMust(
-			TagValue{}.AttributeTypes(ctx),
-			v.Tag.Attributes(),
-		)
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"block":      basetypes.StringType{},
+			"cidr":       basetypes.StringType{},
+			"created_by": basetypes.StringType{},
+			"created_on": basetypes.NumberType{},
+			"desc":       basetypes.StringType{},
+			"id":         basetypes.StringType{},
+			"settled_by": basetypes.StringType{},
+			"settled_on": basetypes.NumberType{},
+			"space":      basetypes.StringType{},
+			"status":     basetypes.StringType{},
+			"tag": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+		}), diags
 	}
 
 	attributeTypes := map[string]attr.Type{
@@ -877,8 +875,8 @@ func (v ReservationsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectV
 		"settled_on": basetypes.NumberType{},
 		"space":      basetypes.StringType{},
 		"status":     basetypes.StringType{},
-		"tag": basetypes.ObjectType{
-			AttrTypes: TagValue{}.AttributeTypes(ctx),
+		"tag": basetypes.MapType{
+			ElemType: types.StringType,
 		},
 	}
 
@@ -903,7 +901,7 @@ func (v ReservationsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectV
 			"settled_on": v.SettledOn,
 			"space":      v.Space,
 			"status":     v.Status,
-			"tag":        tag,
+			"tag":        tagVal,
 		})
 
 	return objVal, diags
@@ -991,268 +989,8 @@ func (v ReservationsValue) AttributeTypes(ctx context.Context) map[string]attr.T
 		"settled_on": basetypes.NumberType{},
 		"space":      basetypes.StringType{},
 		"status":     basetypes.StringType{},
-		"tag": basetypes.ObjectType{
-			AttrTypes: TagValue{}.AttributeTypes(ctx),
+		"tag": basetypes.MapType{
+			ElemType: types.StringType,
 		},
 	}
-}
-
-var _ basetypes.ObjectTypable = TagType{}
-
-type TagType struct {
-	basetypes.ObjectType
-}
-
-func (t TagType) Equal(o attr.Type) bool {
-	other, ok := o.(TagType)
-
-	if !ok {
-		return false
-	}
-
-	return t.ObjectType.Equal(other.ObjectType)
-}
-
-func (t TagType) String() string {
-	return "TagType"
-}
-
-func (t TagType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return TagValue{
-		state: attr.ValueStateKnown,
-	}, diags
-}
-
-func NewTagValueNull() TagValue {
-	return TagValue{
-		state: attr.ValueStateNull,
-	}
-}
-
-func NewTagValueUnknown() TagValue {
-	return TagValue{
-		state: attr.ValueStateUnknown,
-	}
-}
-
-func NewTagValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (TagValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
-	ctx := context.Background()
-
-	for name, attributeType := range attributeTypes {
-		attribute, ok := attributes[name]
-
-		if !ok {
-			diags.AddError(
-				"Missing TagValue Attribute Value",
-				"While creating a TagValue value, a missing attribute value was detected. "+
-					"A TagValue must contain values for all attributes, even if null or unknown. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("TagValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
-			)
-
-			continue
-		}
-
-		if !attributeType.Equal(attribute.Type(ctx)) {
-			diags.AddError(
-				"Invalid TagValue Attribute Type",
-				"While creating a TagValue value, an invalid attribute value was detected. "+
-					"A TagValue must use a matching attribute type for the value. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("TagValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("TagValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
-			)
-		}
-	}
-
-	for name := range attributes {
-		_, ok := attributeTypes[name]
-
-		if !ok {
-			diags.AddError(
-				"Extra TagValue Attribute Value",
-				"While creating a TagValue value, an extra attribute value was detected. "+
-					"A TagValue must not contain values beyond the expected attribute types. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra TagValue Attribute Name: %s", name),
-			)
-		}
-	}
-
-	if diags.HasError() {
-		return NewTagValueUnknown(), diags
-	}
-
-	if diags.HasError() {
-		return NewTagValueUnknown(), diags
-	}
-
-	return TagValue{
-		state: attr.ValueStateKnown,
-	}, diags
-}
-
-func NewTagValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) TagValue {
-	object, diags := NewTagValue(attributeTypes, attributes)
-
-	if diags.HasError() {
-		// This could potentially be added to the diag package.
-		diagsStrings := make([]string, 0, len(diags))
-
-		for _, diagnostic := range diags {
-			diagsStrings = append(diagsStrings, fmt.Sprintf(
-				"%s | %s | %s",
-				diagnostic.Severity(),
-				diagnostic.Summary(),
-				diagnostic.Detail()))
-		}
-
-		panic("NewTagValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
-	}
-
-	return object
-}
-
-func (t TagType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
-	if in.Type() == nil {
-		return NewTagValueNull(), nil
-	}
-
-	if !in.Type().Equal(t.TerraformType(ctx)) {
-		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
-	}
-
-	if !in.IsKnown() {
-		return NewTagValueUnknown(), nil
-	}
-
-	if in.IsNull() {
-		return NewTagValueNull(), nil
-	}
-
-	attributes := map[string]attr.Value{}
-
-	val := map[string]tftypes.Value{}
-
-	err := in.As(&val)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range val {
-		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
-
-		if err != nil {
-			return nil, err
-		}
-
-		attributes[k] = a
-	}
-
-	return NewTagValueMust(TagValue{}.AttributeTypes(ctx), attributes), nil
-}
-
-func (t TagType) ValueType(ctx context.Context) attr.Value {
-	return TagValue{}
-}
-
-var _ basetypes.ObjectValuable = TagValue{}
-
-type TagValue struct {
-	state attr.ValueState
-}
-
-func (v TagValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 0)
-
-	objectType := tftypes.Object{AttributeTypes: attrTypes}
-
-	switch v.state {
-	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 0)
-
-		if err := tftypes.ValidateValue(objectType, vals); err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		return tftypes.NewValue(objectType, vals), nil
-	case attr.ValueStateNull:
-		return tftypes.NewValue(objectType, nil), nil
-	case attr.ValueStateUnknown:
-		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
-	default:
-		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
-	}
-}
-
-func (v TagValue) IsNull() bool {
-	return v.state == attr.ValueStateNull
-}
-
-func (v TagValue) IsUnknown() bool {
-	return v.state == attr.ValueStateUnknown
-}
-
-func (v TagValue) String() string {
-	return "TagValue"
-}
-
-func (v TagValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	attributeTypes := map[string]attr.Type{}
-
-	if v.IsNull() {
-		return types.ObjectNull(attributeTypes), diags
-	}
-
-	if v.IsUnknown() {
-		return types.ObjectUnknown(attributeTypes), diags
-	}
-
-	objVal, diags := types.ObjectValue(
-		attributeTypes,
-		map[string]attr.Value{})
-
-	return objVal, diags
-}
-
-func (v TagValue) Equal(o attr.Value) bool {
-	other, ok := o.(TagValue)
-
-	if !ok {
-		return false
-	}
-
-	if v.state != other.state {
-		return false
-	}
-
-	if v.state != attr.ValueStateKnown {
-		return true
-	}
-
-	return true
-}
-
-func (v TagValue) Type(ctx context.Context) attr.Type {
-	return TagType{
-		basetypes.ObjectType{
-			AttrTypes: v.AttributeTypes(ctx),
-		},
-	}
-}
-
-func (v TagValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
-	return map[string]attr.Type{}
 }
