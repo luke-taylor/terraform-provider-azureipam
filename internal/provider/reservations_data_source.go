@@ -3,11 +3,14 @@ package provider
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"terraform-provider-azureipam/internal/client"
 	"terraform-provider-azureipam/internal/gen/data_sources"
 
-
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSource = (*reservationsDataSource)(nil)
@@ -19,7 +22,6 @@ func NewReservationsDataSource() datasource.DataSource {
 type reservationsDataSource struct {
 	client *client.Client
 }
-
 
 func (d *reservationsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_reservations"
@@ -38,7 +40,7 @@ func (d *reservationsDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	resp.Diagnostics.Append(d.client.ReservationsApiGet(ctx, &data,)...)
+	resp.Diagnostics.Append(reservationsApiGet(ctx, d.client, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -64,4 +66,56 @@ func (d *reservationsDataSource) Configure(_ context.Context, req datasource.Con
 	}
 
 	d.client = client
+}
+
+func reservationsApiGet(ctx context.Context, c *client.Client, data *data_sources.ReservationsModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+	requestData := client.ReservationApiModel{
+		Space: data.Space.ValueString(),
+		Block: data.Block.ValueString(),
+	}
+	response, err := c.ReservationsApiGet(ctx, requestData)
+	if err != nil {
+		diags.AddError("Response Unmarshal Error", fmt.Sprintf("Failed to unmarshal response: %s", err))
+		return diags
+	}
+	elements := make([]attr.Value, len(response))
+	for i, reservation := range response {
+		tags := make(map[string]attr.Value, len(reservation.Tag))
+		for k, v := range reservation.Tag {
+			tags[k] = types.StringValue(v)
+		}
+		createdOn := big.NewFloat(reservation.CreatedOn)
+		settledOn := big.NewFloat(reservation.SettledOn)
+		tag, _ := types.MapValue(types.StringType, tags)
+		objVal, objDiags := data_sources.NewReservationsValue(data_sources.NewReservationsValueNull().AttributeTypes(ctx),
+			map[string]attr.Value{
+				"id":         types.StringValue(reservation.Id),
+				"space":      types.StringValue(reservation.Space),
+				"block":      types.StringValue(reservation.Block),
+				"cidr":       types.StringValue(reservation.CIDR),
+				"desc":       types.StringValue(reservation.Desc),
+				"created_on": types.NumberValue(createdOn),
+				"created_by": types.StringValue(reservation.CreatedBy),
+				"settled_by": types.StringValue(reservation.SettledBy),
+				"settled_on": types.NumberValue(settledOn),
+				"status":     types.StringValue(reservation.Status),
+				"tag":        tag,
+			},
+		)
+		diags.Append(objDiags...)
+		if diags.HasError() {
+			return diags
+		}
+		elements[i] = objVal
+	}
+	fmt.Println("here")
+	fmt.Println(elements)
+
+	// Set the Reservations field in the ReservationsModel
+	data.Reservations, diags = types.SetValueFrom(ctx, data_sources.NewReservationsValueNull().Type(ctx), &elements)
+	data.Settled = types.BoolValue(true)
+
+	return diags
+
 }

@@ -3,8 +3,13 @@ package provider
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"terraform-provider-azureipam/internal/client"
 	"terraform-provider-azureipam/internal/gen/resources"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
@@ -35,7 +40,7 @@ func (r *reservationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	resp.Diagnostics.Append(r.client.ReservationApiPost(ctx, &data)...)
+	resp.Diagnostics.Append(reservationResourceApiPost(ctx, r.client, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -51,7 +56,7 @@ func (r *reservationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	resp.Diagnostics.Append(r.client.ReservationApiGetDelete(ctx, &data, "GET")...)
+	resp.Diagnostics.Append(reservationResourceApiGet(ctx, r.client, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -67,7 +72,7 @@ func (r *reservationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	resp.Diagnostics.Append(r.client.ReservationApiPost(ctx, &data)...)
+	resp.Diagnostics.Append(reservationResourceApiPost(ctx, r.client, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -83,7 +88,7 @@ func (r *reservationResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	resp.Diagnostics.Append(r.client.ReservationApiGetDelete(ctx, &data, "DELETE")...)
+	resp.Diagnostics.Append(reservationApiDelete(ctx, r.client, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -106,4 +111,100 @@ func (r *reservationResource) Configure(_ context.Context, req resource.Configur
 	}
 
 	r.client = client
+}
+
+func reservationApiDelete(ctx context.Context, c *client.Client, data *resources.ReservationModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+	requestData := client.ReservationApiModel{
+		Space: data.Space.ValueString(),
+		Block: data.Block.ValueString(),
+		Id:    data.Id.ValueString(),
+	}
+
+	if err := c.ReservationApiDelete(ctx, requestData); err != nil {
+		diags.AddError("Response Unmarshal Error", fmt.Sprintf("Failed to unmarshal response: %s", err))
+		return diags
+	}
+
+	return diags
+}
+
+func reservationResourceApiGet(ctx context.Context, c *client.Client, data *resources.ReservationModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	requestData := client.ReservationApiModel{
+		Space: data.Space.ValueString(),
+		Block: data.Block.ValueString(),
+		Id:    data.Id.ValueString(),
+	}
+
+	response, err := c.ReservationApiGet(ctx, requestData)
+	if err != nil {
+		diags.AddError("Response Unmarshal Error", fmt.Sprintf("Failed to unmarshal response: %s", err))
+		return diags
+	}
+
+	data.Id = types.StringValue(response.Id)
+	data.Cidr = types.StringValue(response.CIDR)
+	data.CreatedBy = types.StringValue(response.CreatedBy)
+	data.Desc = types.StringValue(response.Desc)
+	data.Status = types.StringValue(response.Status)
+	settledOnBigFloat := big.NewFloat(response.SettledOn)
+	data.SettledOn = types.NumberValue(settledOnBigFloat)
+	data.SettledBy = types.StringValue(response.SettledBy)
+	createdOnBigFloat := big.NewFloat(response.CreatedOn)
+	data.CreatedOn = types.NumberValue(createdOnBigFloat)
+
+	if response.Tag != nil {
+		tagElements := make(map[string]attr.Value)
+		for k, v := range response.Tag {
+			tagElements[k] = types.StringValue(v)
+		}
+		data.Tag, _ = types.MapValue(types.StringType, tagElements)
+	} else {
+		data.Tag = types.MapNull(types.StringType)
+	}
+	return diags
+}
+
+func reservationResourceApiPost(ctx context.Context, c *client.Client, data *resources.ReservationModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	requestData := client.ReservationApiModel{
+		Space:         data.Space.ValueString(),
+		Block:         data.Block.ValueString(),
+		SmallestCidr:  data.SmallestCidr.ValueBool(),
+		ReverseSearch: data.ReverseSearch.ValueBool(),
+		Size:          data.Size.ValueInt64(),
+		Desc:          data.Desc.ValueString(),
+		CIDR:          data.Cidr.ValueString(),
+	}
+
+	response, err := c.ReservationApiPost(ctx, requestData)
+	if err != nil {
+		diags.AddError("Response Unmarshal Error", fmt.Sprintf("Failed to unmarshal response: %s", err))
+		return diags
+	}
+
+	data.Id = types.StringValue(response.Id)
+	data.Cidr = types.StringValue(response.CIDR)
+	data.CreatedBy = types.StringValue(response.CreatedBy)
+	data.Desc = types.StringValue(response.Desc)
+	data.Status = types.StringValue(response.Status)
+	settledOnBigFloat := big.NewFloat(response.SettledOn)
+	data.SettledOn = types.NumberValue(settledOnBigFloat)
+	data.SettledBy = types.StringValue(response.SettledBy)
+	createdOnBigFloat := big.NewFloat(response.CreatedOn)
+	data.CreatedOn = types.NumberValue(createdOnBigFloat)
+
+	if response.Tag != nil {
+		tagElements := make(map[string]attr.Value)
+		for k, v := range response.Tag {
+			tagElements[k] = types.StringValue(v)
+		}
+		data.Tag, _ = types.MapValue(types.StringType, tagElements)
+	} else {
+		data.Tag = types.MapNull(types.StringType)
+	}
+	return diags
 }
