@@ -12,9 +12,8 @@
       "mode": "debug",
       "program": "${workspaceFolder}",
       "args": [
-        "-debuggable",
+        "-debug",
       ],
-      "envFile": "${workspaceFolder}/.vscode/private.env",
     }
   ]
 }

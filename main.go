@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 
 	"terraform-provider-azureipam/internal/provider"
@@ -19,8 +20,15 @@ var (
 )
 
 func main() {
+	var debug bool
+
+	flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers like delve")
+	flag.Parse()
+
 	opts := providerserver.ServeOpts{
-		Address: "hashicorp.com/edu/azureipam",
+		Address:         "hashicorp.com/edu/azureipam",
+		Debug:           debug,
+		ProtocolVersion: 6,
 	}
 
 	err := providerserver.Serve(context.Background(), provider.New(version), opts)
