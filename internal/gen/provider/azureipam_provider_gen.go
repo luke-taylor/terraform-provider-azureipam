@@ -19,7 +19,7 @@ func AzureipamProviderSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "The application (client) id of the App Registration in Micorsoft Entra ID responsible for the Azure IPAM Engine. If not specified, value will be attempted to be read from the `IPAM_ENGINE_CLIENT_ID` environment variable.",
 			},
 			"host_url": schema.StringAttribute{
-				Required:            true,
+				Optional:            true,
 				Description:         "The URL of the Azure IPAM Soluton. If not specified, value will be attempted to be read from the `IPAM_HOST_URL` environment variable.",
 				MarkdownDescription: "The URL of the Azure IPAM Soluton. If not specified, value will be attempted to be read from the `IPAM_HOST_URL` environment variable.",
 			},

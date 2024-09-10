@@ -23,6 +23,7 @@ type ReservationApiModel struct {
 	ReverseSearch bool              `json:"reverse_search,omitempty"`
 	Size          int64             `json:"size,omitempty"`
 	SmallestCidr  bool              `json:"smallest_cidr,omitempty"`
+	Settled       bool              `json:"settled,omitempty"`
 }
 
 func (c *Client) ReservationsApiGet(ctx context.Context, requestData ReservationApiModel) ([]ReservationApiModel, error) {
@@ -30,8 +31,13 @@ func (c *Client) ReservationsApiGet(ctx context.Context, requestData Reservation
 	// Construct the URL for the GET request
 	url := fmt.Sprintf("%s/api/spaces/%s/blocks/%s/reservations", c.HostURL, requestData.Space, requestData.Block)
 
+	body, err := json.Marshal(requestData)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the HTTP request
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}

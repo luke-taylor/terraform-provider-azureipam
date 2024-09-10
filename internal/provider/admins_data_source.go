@@ -6,7 +6,10 @@ import (
 	"terraform-provider-azureipam/internal/client"
 	"terraform-provider-azureipam/internal/gen/data_sources"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSource = (*adminsDataSource)(nil)
@@ -35,7 +38,7 @@ func (d *adminsDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	resp.Diagnostics.Append(d.client.AdminsApiGet(ctx, &data)...)
+	resp.Diagnostics.Append(adminsDataGet(ctx, d.client, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -60,4 +63,33 @@ func (d *adminsDataSource) Configure(_ context.Context, req datasource.Configure
 	}
 
 	d.client = client
+}
+
+func adminsDataGet(ctx context.Context, c *client.Client, data *data_sources.AdminsModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	response, err := c.AdminsApiGet(ctx)
+	if err != nil {
+		diags.AddError("Response Unmarshal Error", fmt.Sprintf("Failed to unmarshal response: %s", err))
+		return diags
+	}
+
+	elements := make([]attr.Value, len(response))
+	for i, admin := range response {
+		elementValue := data_sources.NewAdminsValueMust(
+			data_sources.NewAdminsValueNull().AttributeTypes(ctx),
+			map[string]attr.Value{
+				"id":    types.StringValue(admin.ID),
+				"email": types.StringValue(admin.Email),
+				"name":  types.StringValue(admin.Name),
+				"type":  types.StringValue(admin.Type),
+			},
+		)
+		elements[i] = elementValue
+	}
+
+	data.Admins, diags = types.SetValueFrom(ctx, data_sources.NewAdminsValueNull().Type(ctx), &elements)
+
+	return diags
+
 }

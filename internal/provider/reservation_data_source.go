@@ -41,7 +41,7 @@ func (d *reservationDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	resp.Diagnostics.Append(reservationApiGet(ctx, d.client, &data)...)
+	resp.Diagnostics.Append(reservationDataGet(ctx, d.client, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -68,7 +68,7 @@ func (d *reservationDataSource) Configure(_ context.Context, req datasource.Conf
 	d.client = client
 }
 
-func reservationApiGet(ctx context.Context, c *client.Client, data *data_sources.ReservationModel) diag.Diagnostics {
+func reservationDataGet(ctx context.Context, c *client.Client, data *data_sources.ReservationModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	requestData := client.ReservationApiModel{

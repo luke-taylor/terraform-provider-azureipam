@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"terraform-provider-azureipam/internal/client"
 	"terraform-provider-azureipam/internal/gen/resources"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ resource.Resource = (*reservationResource)(nil)
@@ -40,7 +41,7 @@ func (r *reservationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	resp.Diagnostics.Append(reservationResourceApiPost(ctx, r.client, &data)...)
+	resp.Diagnostics.Append(reservationResourcePost(ctx, r.client, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -56,7 +57,7 @@ func (r *reservationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	resp.Diagnostics.Append(reservationResourceApiGet(ctx, r.client, &data)...)
+	resp.Diagnostics.Append(reservationResourceGet(ctx, r.client, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -72,10 +73,10 @@ func (r *reservationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	resp.Diagnostics.Append(reservationResourceApiPost(ctx, r.client, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	// resp.Diagnostics.Append(reservationResourcePost(ctx, r.client, &data)...)
+	// if resp.Diagnostics.HasError() {
+	// 	return
+	// }
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -88,7 +89,7 @@ func (r *reservationResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	resp.Diagnostics.Append(reservationApiDelete(ctx, r.client, &data)...)
+	resp.Diagnostics.Append(reservationResourceDelete(ctx, r.client, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -112,8 +113,16 @@ func (r *reservationResource) Configure(_ context.Context, req resource.Configur
 
 	r.client = client
 }
+func (r *reservationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	idParts := strings.Split(req.ID, ",")
+	// Retrieve import ID and save to id attribute
+	// resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("space"), idParts[0])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("block"), idParts[1])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[2])...)
+}
 
-func reservationApiDelete(ctx context.Context, c *client.Client, data *resources.ReservationModel) diag.Diagnostics {
+func reservationResourceDelete(ctx context.Context, c *client.Client, data *resources.ReservationModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 	requestData := client.ReservationApiModel{
 		Space: data.Space.ValueString(),
@@ -129,7 +138,7 @@ func reservationApiDelete(ctx context.Context, c *client.Client, data *resources
 	return diags
 }
 
-func reservationResourceApiGet(ctx context.Context, c *client.Client, data *resources.ReservationModel) diag.Diagnostics {
+func reservationResourceGet(ctx context.Context, c *client.Client, data *resources.ReservationModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	requestData := client.ReservationApiModel{
@@ -167,7 +176,7 @@ func reservationResourceApiGet(ctx context.Context, c *client.Client, data *reso
 	return diags
 }
 
-func reservationResourceApiPost(ctx context.Context, c *client.Client, data *resources.ReservationModel) diag.Diagnostics {
+func reservationResourcePost(ctx context.Context, c *client.Client, data *resources.ReservationModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	requestData := client.ReservationApiModel{

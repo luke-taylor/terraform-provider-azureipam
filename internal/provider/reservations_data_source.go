@@ -40,7 +40,7 @@ func (d *reservationsDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	resp.Diagnostics.Append(reservationsApiGet(ctx, d.client, &data)...)
+	resp.Diagnostics.Append(reservationsDataGet(ctx, d.client, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -68,11 +68,12 @@ func (d *reservationsDataSource) Configure(_ context.Context, req datasource.Con
 	d.client = client
 }
 
-func reservationsApiGet(ctx context.Context, c *client.Client, data *data_sources.ReservationsModel) diag.Diagnostics {
+func reservationsDataGet(ctx context.Context, c *client.Client, data *data_sources.ReservationsModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 	requestData := client.ReservationApiModel{
 		Space: data.Space.ValueString(),
 		Block: data.Block.ValueString(),
+		Settled: data.Settled.ValueBool(),
 	}
 	response, err := c.ReservationsApiGet(ctx, requestData)
 	if err != nil {
@@ -88,7 +89,7 @@ func reservationsApiGet(ctx context.Context, c *client.Client, data *data_source
 		createdOn := big.NewFloat(reservation.CreatedOn)
 		settledOn := big.NewFloat(reservation.SettledOn)
 		tag, _ := types.MapValue(types.StringType, tags)
-		objVal, objDiags := data_sources.NewReservationsValue(data_sources.NewReservationsValueNull().AttributeTypes(ctx),
+		objVal := data_sources.NewReservationsValueMust(data_sources.NewReservationsValueNull().AttributeTypes(ctx),
 			map[string]attr.Value{
 				"id":         types.StringValue(reservation.Id),
 				"space":      types.StringValue(reservation.Space),
@@ -103,18 +104,15 @@ func reservationsApiGet(ctx context.Context, c *client.Client, data *data_source
 				"tag":        tag,
 			},
 		)
-		diags.Append(objDiags...)
-		if diags.HasError() {
-			return diags
-		}
+		// diags.Append(objDiags...)
+		// if diags.HasError() {
+		// 	return diags
+		// }
 		elements[i] = objVal
 	}
-	fmt.Println("here")
-	fmt.Println(elements)
 
 	// Set the Reservations field in the ReservationsModel
 	data.Reservations, diags = types.SetValueFrom(ctx, data_sources.NewReservationsValueNull().Type(ctx), &elements)
-	data.Settled = types.BoolValue(true)
 
 	return diags
 

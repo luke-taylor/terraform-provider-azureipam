@@ -8,7 +8,7 @@
         {
           "name": "host_url",
           "string": {
-            "optional_required": "required",
+            "optional_required": "optional",
             "description": "The URL of the Azure IPAM Soluton. If not specified, value will be attempted to be read from the `IPAM_HOST_URL` environment variable."
           }
         },
@@ -40,7 +40,19 @@
             "name": "cidr",
             "string": {
               "description": "CIDR of the Reservation.",
-              "computed_optional_required": "computed_optional"
+              "computed_optional_required": "computed_optional",
+              "plan_modifiers": [
+                {
+                  "custom": {
+                    "imports": [
+                      {
+                        "path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+                      }
+                    ],
+                    "schema_definition": "stringplanmodifier.UseStateForUnknown()"
+                  }
+                }
+              ]
             }
           },
           {
@@ -91,35 +103,95 @@
             "name": "created_by",
             "string": {
               "description": "ID of the user who created the Reservation.",
-              "computed_optional_required": "computed"
+              "computed_optional_required": "computed",
+              "plan_modifiers": [
+                {
+                  "custom": {
+                    "imports": [
+                      {
+                        "path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+                      }
+                    ],
+                    "schema_definition": "stringplanmodifier.UseStateForUnknown()"
+                  }
+                }
+              ]
             }
           },
           {
             "name": "created_on",
             "number": {
               "description": "Timestamp of the Reservation creation.",
-              "computed_optional_required": "computed"
+              "computed_optional_required": "computed",
+              "plan_modifiers": [
+                {
+                  "custom": {
+                    "imports": [
+                      {
+                        "path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/numberplanmodifier"
+                      }
+                    ],
+                    "schema_definition": "numberplanmodifier.UseStateForUnknown()"
+                  }
+                }
+              ]
             }
           },
           {
             "name": "id",
             "string": {
               "description": "ID of the Reservation.",
-              "computed_optional_required": "computed"
+              "computed_optional_required": "computed",
+              "plan_modifiers": [
+                {
+                  "custom": {
+                    "imports": [
+                      {
+                        "path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+                      }
+                    ],
+                    "schema_definition": "stringplanmodifier.UseStateForUnknown()"
+                  }
+                }
+              ]
             }
           },
           {
             "name": "settled_by",
             "string": {
               "description": "ID of the user who settled the Reservation.",
-              "computed_optional_required": "computed"
+              "computed_optional_required": "computed",
+              "plan_modifiers": [
+                {
+                  "custom": {
+                    "imports": [
+                      {
+                        "path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+                      }
+                    ],
+                    "schema_definition": "stringplanmodifier.UseStateForUnknown()"
+                  }
+                }
+              ]
             }
           },
           {
             "name": "settled_on",
             "number": {
               "description": "Timestamp of the Reservation settlement.",
-              "computed_optional_required": "computed"
+              "computed_optional_required": "computed",
+              "plan_modifiers": [
+                {
+                  "custom": {
+                    "imports": [
+                      {
+                        "path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/numberplanmodifier"
+                      }
+                    ],
+                    "schema_definition": "numberplanmodifier.UseStateForUnknown()"
+                  }
+                }
+              ]
             }
           },
           {
@@ -133,7 +205,19 @@
             "name": "status",
             "string": {
               "description": "Status of the Reservation",
-              "computed_optional_required": "computed"
+              "computed_optional_required": "computed",
+              "plan_modifiers": [
+                {
+                  "custom": {
+                    "imports": [
+                      {
+                        "path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+                      }
+                    ],
+                    "schema_definition": "stringplanmodifier.UseStateForUnknown()"
+                  }
+                }
+              ]
             }
           },
           {
@@ -143,7 +227,19 @@
               "computed_optional_required": "computed",
               "element_type": {
                 "string": {}
-              }
+              },
+              "plan_modifiers": [
+                {
+                  "custom": {
+                    "imports": [
+                      {
+                        "path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
+                      }
+                    ],
+                    "schema_definition": "mapplanmodifier.UseStateForUnknown()"
+                  }
+                }
+              ]
             }
           }
         ]
@@ -192,72 +288,72 @@
         ]
       }
     },
-		{
-			"name": "reservation",
-			"schema": {
-				"attributes": [
-					{
-						"name": "space",
-						"string": {
-							"computed_optional_required": "required",
-							"description": "Name of the target Space"
-						}
-					},
-					{
-						"name": "block",
-						"string": {
-							"computed_optional_required": "required",
-							"description": "Name of the target Block"
-						}
-					},
-					{
-						"name": "cidr",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "created_by",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "created_on",
-						"number": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "desc",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "id",
-						"string": {
-							"computed_optional_required": "required"
-						}
-					},
-					{
-						"name": "settled_by",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "settled_on",
-						"number": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "status",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
+    {
+      "name": "reservation",
+      "schema": {
+        "attributes": [
+          {
+            "name": "space",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "Name of the target Space"
+            }
+          },
+          {
+            "name": "block",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "Name of the target Block"
+            }
+          },
+          {
+            "name": "cidr",
+            "string": {
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "created_on",
+            "number": {
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "desc",
+            "string": {
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "id",
+            "string": {
+              "computed_optional_required": "required"
+            }
+          },
+          {
+            "name": "settled_by",
+            "string": {
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "settled_on",
+            "number": {
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "status",
+            "string": {
+              "computed_optional_required": "computed"
+            }
+          },
           {
             "name": "tag",
             "map": {
@@ -268,100 +364,100 @@
               }
             }
           }
-				]
-			}
-		},
+        ]
+      }
+    },
     {
-			"name": "reservations",
-			"schema": {
-				"attributes": [
-					{
-						"name": "space",
-						"string": {
-							"computed_optional_required": "required",
-							"description": "Name of the target Space"
-						}
-					},
-					{
-						"name": "block",
-						"string": {
-							"computed_optional_required": "required",
-							"description": "Name of the target Block"
-						}
-					},
-					{
-						"name": "settled",
-						"bool": {
-							"computed_optional_required": "computed_optional",
-							"description": "Include settled reservations."
-						}
-					},
-					{
-						"name": "reservations",
-						"set_nested": {
-							"computed_optional_required": "computed",
-							"nested_object": {
-								"attributes": [
-									{
-										"name": "block",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "cidr",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "created_by",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "created_on",
-										"number": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "desc",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "id",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "settled_by",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "settled_on",
-										"number": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "space",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "status",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
+      "name": "reservations",
+      "schema": {
+        "attributes": [
+          {
+            "name": "space",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "Name of the target Space"
+            }
+          },
+          {
+            "name": "block",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "Name of the target Block"
+            }
+          },
+          {
+            "name": "settled",
+            "bool": {
+              "computed_optional_required": "computed_optional",
+              "description": "Include settled reservations."
+            }
+          },
+          {
+            "name": "reservations",
+            "set_nested": {
+              "computed_optional_required": "computed",
+              "nested_object": {
+                "attributes": [
+                  {
+                    "name": "block",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "cidr",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "created_by",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "created_on",
+                    "number": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "desc",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "id",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "settled_by",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "settled_on",
+                    "number": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "space",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
+                  {
+                    "name": "status",
+                    "string": {
+                      "computed_optional_required": "computed"
+                    }
+                  },
                   {
                     "name": "tag",
                     "map": {
@@ -372,13 +468,13 @@
                       }
                     }
                   }
-								]
-							}
-						}
-					}
-				]
-			}
-		}
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
   ],
   "version": "0.1"
 }

@@ -5,7 +5,11 @@ package resources
 import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/numberplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -24,16 +28,25 @@ func ReservationResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "CIDR of the Reservation.",
 				MarkdownDescription: "CIDR of the Reservation.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"created_by": schema.StringAttribute{
 				Computed:            true,
 				Description:         "ID of the user who created the Reservation.",
 				MarkdownDescription: "ID of the user who created the Reservation.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"created_on": schema.NumberAttribute{
 				Computed:            true,
 				Description:         "Timestamp of the Reservation creation.",
 				MarkdownDescription: "Timestamp of the Reservation creation.",
+				PlanModifiers: []planmodifier.Number{
+					numberplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"desc": schema.StringAttribute{
 				Optional:            true,
@@ -46,6 +59,9 @@ func ReservationResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "ID of the Reservation.",
 				MarkdownDescription: "ID of the Reservation.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"reverse_search": schema.BoolAttribute{
 				Optional:            true,
@@ -58,11 +74,17 @@ func ReservationResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "ID of the user who settled the Reservation.",
 				MarkdownDescription: "ID of the user who settled the Reservation.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"settled_on": schema.NumberAttribute{
 				Computed:            true,
 				Description:         "Timestamp of the Reservation settlement.",
 				MarkdownDescription: "Timestamp of the Reservation settlement.",
+				PlanModifiers: []planmodifier.Number{
+					numberplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"size": schema.Int64Attribute{
 				Optional:            true,
@@ -86,12 +108,18 @@ func ReservationResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "Status of the Reservation",
 				MarkdownDescription: "Status of the Reservation",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"tag": schema.MapAttribute{
 				ElementType:         types.StringType,
 				Computed:            true,
 				Description:         "Tags of the Reservation",
 				MarkdownDescription: "Tags of the Reservation",
+				PlanModifiers: []planmodifier.Map{
+					mapplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
